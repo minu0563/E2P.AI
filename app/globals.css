@@ -1,26 +1,228 @@
 @import "tailwindcss";
 
+/*
+ * E2P 디자인 토큰 — 종이·잉크 톤의 실무 도구 느낌.
+ * 그라데이션·글로우·유리 효과 없이, 얇은 선과 단색 강조 하나(버밀리언)만 쓴다.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f3f0e8;
+  --surface: #fbf9f4;
+  --surface-2: #ebe7dc;
+  --border: #d6d0c2;
+  --line: #1a1a1a;
+  --text: #161616;
+  --muted: #5d5a53;
+  --faint: #9a958a;
+  --accent: #e2471c;
+  --accent-hover: #c63a12;
+  --accent-soft: #f8e1d6;
+  --accent-fg: #ffffff;
+  --danger: #b42318;
+  --danger-soft: #f7e0dc;
+  --warn: #8a5a00;
+  --warn-soft: #f3e7c9;
+  --ok: #2f6b3a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #131312;
+    --surface: #1b1b19;
+    --surface-2: #252522;
+    --border: #34332f;
+    --line: #e9e6dd;
+    --text: #ecE9e1;
+    --muted: #a19d93;
+    --faint: #6b675f;
+    --accent: #ff6a3d;
+    --accent-hover: #ff8660;
+    --accent-soft: #3a1f15;
+    --accent-fg: #131312;
+    --danger: #f2826f;
+    --danger-soft: #3a1a15;
+    --warn: #e7b85a;
+    --warn-soft: #33290f;
+    --ok: #7fbf8a;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-geist-sans), "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "D2Coding", monospace;
 }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  word-break: keep-all;
+}
+
+::placeholder {
+  color: var(--faint);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* 유틸리티(py-1.5 등)가 덮어쓸 수 있도록 components 레이어에 둔다 */
+@layer components {
+/* 작은 대문자 모노 라벨 (§ 01 · HOW IT WORKS) */
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* 한글은 자간을 벌리면 어색하므로 */
+:lang(ko) .label {
+  letter-spacing: 0.02em;
+}
+
+/* 기본 버튼 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 6px;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 120ms, color 120ms, border-color 120ms;
+}
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+}
+.btn-primary:hover {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.btn-primary:disabled {
+  background: var(--surface-2);
+  color: var(--faint);
+  cursor: not-allowed;
+}
+.btn-ghost {
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-ghost:hover {
+  border-color: var(--text);
+}
+}
+
+/* 정적 문서 페이지 (가이드·약관 등) */
+.prose-doc h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 1.1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.prose-doc > h2:first-child {
+  margin-top: 0;
+}
+.prose-doc h3 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+.prose-doc p,
+.prose-doc li {
+  color: var(--muted);
+  line-height: 1.8;
+}
+.prose-doc ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0;
+}
+.prose-doc ul > li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+.prose-doc ul > li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: var(--faint);
+}
+.prose-doc ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.prose-doc strong {
+  color: var(--text);
+}
+.prose-doc a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+.prose-doc a:hover {
+  color: var(--accent);
+}
+.prose-doc code,
+.prose-doc pre {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+.prose-doc code {
+  padding: 0.1rem 0.35rem;
+}
+.prose-doc pre {
+  padding: 0.85rem 1rem;
+  white-space: pre-wrap;
+  margin: 0.75rem 0;
+  color: var(--text);
+  border-left: 2px solid var(--accent);
+}
+.prose-doc table {
+  width: 100%;
+  margin: 0.75rem 0;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.prose-doc th,
+.prose-doc td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 0.75rem 0.55rem 0;
+  text-align: left;
+  vertical-align: top;
+  color: var(--muted);
+}
+.prose-doc th {
+  border-bottom-color: var(--line);
+  color: var(--text);
+  font-weight: 600;
+}
+

@@ -1,36 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# E2P.AI
 
-## Getting Started
+Everything to Prompt — 이미지와 짧은 요청으로 영상 모델용 프롬프트를 만든다.
 
-First, run the development server:
+## 로컬 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -d          # Postgres + Redis
+cp .env.example .env.local    # 값 채우기 (QUEUE_SECRET 생성 방법은 파일 안에)
+npx prisma migrate deploy
+npm run dev:all               # 웹 + 생성 워커
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+비공개 저장소(시스템 프롬프트·안전 엔진)를 `system/` 에 클론해야 빌드된다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 구조
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+웹(Next.js) → 큐(Redis, BullMQ) → 워커(worker/) → 추론(Ollama 또는 OpenAI 호환 API)
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 생성 요청은 큐에 들어가고, 화면은 `/api/generate/[id]` 로 진행 상태를 받는다.
+- 이미지는 암호화해 메모리 전용 Redis에 잠시 두고, 워커가 꺼내는 즉시 지운다. 원본은 저장하지 않는다.

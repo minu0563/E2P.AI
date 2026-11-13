@@ -1,0 +1,77 @@
+import "server-only";
+import { createHash, randomBytes } from "node:crypto";
+import { cookies } from "next/headers";
+import { grantSignupCredits } from "@/lib/credits";
+import { db } from "@/lib/db";
+import type { GoogleIdentity } from "@/lib/google";
+
+const SESSION_COOKIE = "session";
+const SESSION_DAYS = 30;
+
+const hash = (v: string) => createHash("sha256").update(v).digest("hex");
+const newToken = () => randomBytes(32).toString("base64url");
+
+/** Google 계정으로 사용자 생성/조회. 처음 가입이면 무료 크레딧 지급. */
+export async function upsertGoogleUser(g: GoogleIdentity) {
+  const existing =
+    (await db.user.findUnique({ where: { googleSub: g.sub } })) ??
+    (await db.user.findUnique({ where: { email: g.email } }));
+  const user = existing
+    ? await db.user.update({
+        where: { id: existing.id },
+        data: { googleSub: g.sub, email: g.email, name: g.name, verifiedAt: existing.verifiedAt ?? new Date() },
+      })
+    : await db.user.create({ data: { googleSub: g.sub, email: g.email, name: g.name, verifiedAt: new Date() } });
+  // 멱등성 키(signup:userId)로 한 번만 지급
+  await grantSignupCredits(user.id);
+  return user;
+}
+
+export async function hasCurrentConsent(userId: string) {
+  return !!(await db.consent.findUnique({
+    where: { userId_version: { userId, version: process.env.TERMS_VERSION! } },
+  }));
+}
+
+export async function startSession(userId: string) {
+  const token = newToken();
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
+  await db.session.create({
+    data: { userId, tokenHash: hash(token), expiresAt },
+  });
+  (await cookies()).set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: expiresAt,
+  });
+}
+
+export async function getCurrentUser() {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const session = await db.session.findUnique({
+    where: { tokenHash: hash(token) },
+    include: { user: true },
+  });
+  if (!session || session.expiresAt < new Date()) return null;
+  return session.user;
+}
+
+export async function endSession() {
+  const jar = await cookies();
+  const token = jar.get(SESSION_COOKIE)?.value;
+  if (token) await db.session.deleteMany({ where: { tokenHash: hash(token) } });
+  jar.delete(SESSION_COOKIE);
+}
+
+/** 현재 약관 버전 동의 기록 (동의 시각·버전) */
+export async function recordConsent(userId: string) {
+  const version = process.env.TERMS_VERSION!;
+  await db.consent.upsert({
+    where: { userId_version: { userId, version } },
+    create: { userId, version },
+    update: {},
+  });
+}

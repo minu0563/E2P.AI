@@ -1,7 +1,24 @@
 {
-  "signup": { "amount": 10, "credit_type": "promo", "expires_days": 30 },
+  "signup": {
+    "amount": 10,
+    "credit_type": "promo",
+    "expires_days": 30
+  },
   "monthly_promo_budget": 5000,
   "daily_limit": 50,
-  "cost": { "generate": 1 },
-  "_comment": "코드 수정 없이 조정. signup: 가입 시 무료 지급(유효기간 필수). monthly_promo_budget: 이번 달 전체 프로모션 지급 합이 넘으면 지급 중단. daily_limit: 사용자별 하루 성공 생성 상한."
+  "cost": {
+    "generate": 1
+  },
+  "day_utc_offset_hours": 9,
+  "reservation_ttl_minutes": 10,
+  "block_fee": {
+    "free_per_day": 3,
+    "counted_codes": [
+      "SEXUAL_REQUEST",
+      "THIRD_PARTY_CLAIM",
+      "MODE_RESTRICTED",
+      "OUTPUT_FILTER"
+    ]
+  },
+  "_comment": "코드 수정 없이 조정. signup: 가입 시 무료 지급(유효기간 필수). monthly_promo_budget: 이번 달 전체 프로모션 지급 합이 넘으면 지급 중단. daily_limit: 사용자별 하루 성공 생성 상한. day_utc_offset_hours: 하루 기준 시간대(9 = 한국 자정). reservation_ttl_minutes: 이 시간 동안 확정·반환이 없는 예약은 자동 반환. block_fee: 하루 free_per_day회까지 차단은 반환, 그 뒤 차단은 차감. counted_codes에 있는 사유만 센다(이미지 판정 차단·시스템 오류는 항상 반환)."
 }

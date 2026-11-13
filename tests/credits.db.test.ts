@@ -32,14 +32,14 @@ run("크레딧 원장 (DB)", async () => {
   it("예약 → 확정은 차감, 예약 → 반환은 원복, 정산은 한 번만", async () => {
     const start = (await c.getBalance(userId)).total;
     expect(await c.reserveCredits(userId, "r1")).toEqual({ ok: true });
-    expect(await c.confirmCredits(userId, "r1")).toBe(true);
-    expect(await c.releaseCredits(userId, "r1")).toBe(false);
+    expect((await c.confirmCredits(userId, "r1")).settled).toBe(true);
+    expect((await c.releaseCredits(userId, "r1")).settled).toBe(false);
     expect((await c.getBalance(userId)).total).toBe(start - 1);
 
     expect(await c.reserveCredits(userId, "r2")).toEqual({ ok: true });
     expect((await c.getBalance(userId)).total).toBe(start - 2);
-    expect(await c.releaseCredits(userId, "r2")).toBe(true);
-    expect(await c.confirmCredits(userId, "r2")).toBe(false);
+    expect((await c.releaseCredits(userId, "r2")).settled).toBe(true);
+    expect((await c.confirmCredits(userId, "r2")).settled).toBe(false);
     expect((await c.getBalance(userId)).total).toBe(start - 1);
   });
 
@@ -62,5 +62,94 @@ run("크레딧 원장 (DB)", async () => {
       idempotencyKey: `expired:${userId}`,
     });
     expect((await c.getBalance(userId)).total).toBe(0);
+  });
+});
+
+run("차단 크레딧·예약 정리 (DB)", async () => {
+  const { db } = await import("@/lib/db");
+  const c = await import("@/lib/credits");
+  const FREE = c.CREDIT_CONFIG.block_fee.free_per_day;
+  const COUNTED = c.CREDIT_CONFIG.block_fee.counted_codes[0];
+  let userId = "";
+  const rid = (s: string) => `${userId}:${s}`;
+  const bal = async () => (await c.getBalance(userId)).total;
+
+  beforeAll(async () => {
+    const u = await db.user.create({ data: { email: `test-block-${Date.now()}@example.test` } });
+    userId = u.id;
+    await c.grantCredits({ userId, amount: 100, creditType: "topup", expiresAt: null, idempotencyKey: `t:${userId}` });
+  });
+  afterAll(async () => {
+    await db.creditEntry.deleteMany({ where: { userId } });
+    await db.user.delete({ where: { id: userId } });
+    await db.$disconnect();
+  });
+
+  it(`센 차단은 하루 ${FREE}회까지 반환, 마지막 무료 차단에 경고, 그 뒤는 차감`, async () => {
+    const start = await bal();
+    for (let i = 1; i <= FREE; i++) {
+      await c.reserveCredits(userId, rid(`b${i}`));
+      const r = await c.settleBlocked(userId, rid(`b${i}`), COUNTED);
+      expect(r).toMatchObject({ settled: true, charged: false, blockFee: false, blockWarn: i === FREE });
+    }
+    expect(await bal()).toBe(start);
+    await c.reserveCredits(userId, rid("b-fee"));
+    expect(await c.settleBlocked(userId, rid("b-fee"), COUNTED)).toMatchObject({ charged: true, blockFee: true });
+    expect(await bal()).toBe(start - 1);
+  });
+
+  it("이미지 판정 차단·시스템 오류·취소는 횟수와 상관없이 반환", async () => {
+    const start = await bal();
+    await c.reserveCredits(userId, rid("age"));
+    expect(await c.settleBlocked(userId, rid("age"), "AGE_UNCERTAIN")).toMatchObject({ charged: false });
+    await c.reserveCredits(userId, rid("err"));
+    expect(await c.releaseCredits(userId, rid("err"))).toMatchObject({ charged: false });
+    await c.reserveCredits(userId, rid("cancel"));
+    expect(await c.releaseCredits(userId, rid("cancel"), "cancel")).toMatchObject({ charged: false });
+    expect(await bal()).toBe(start);
+  });
+
+  it("차단 수수료는 하루 성공 상한에 들어가지 않는다", async () => {
+    const n = await db.creditEntry.count({
+      where: { userId, kind: "confirm", OR: [{ note: null }, { note: "generate" }] },
+    });
+    expect(n).toBe(0);
+  });
+
+  it("날짜가 바뀌면 차단 횟수가 초기화된다", async () => {
+    await db.creditEntry.updateMany({
+      where: { userId, kind: { in: ["confirm", "release"] } },
+      data: { createdAt: new Date(c.dayStart().getTime() - 3_600_000) },
+    });
+    await c.reserveCredits(userId, rid("next-day"));
+    expect(await c.settleBlocked(userId, rid("next-day"), COUNTED)).toMatchObject({ charged: false });
+  });
+
+  it("동시에 차단돼도 무료 횟수를 넘겨 반환하지 않는다", async () => {
+    await db.creditEntry.updateMany({
+      where: { userId, kind: { in: ["confirm", "release"] } },
+      data: { createdAt: new Date(c.dayStart().getTime() - 3_600_000) },
+    });
+    const ids = Array.from({ length: FREE + 4 }, (_, i) => rid(`cc${i}`));
+    for (const id of ids) await c.reserveCredits(userId, id);
+    const rs = await Promise.all(ids.map((id) => c.settleBlocked(userId, id, COUNTED)));
+    expect(rs.filter((r) => !r.charged).length).toBe(FREE);
+    expect(rs.filter((r) => r.blockFee).length).toBe(4);
+  });
+
+  it(`${c.CREDIT_CONFIG.reservation_ttl_minutes}분 넘게 정산되지 않은 예약은 자동 반환`, async () => {
+    const start = await bal();
+    await c.reserveCredits(userId, rid("stale"));
+    await c.reserveCredits(userId, rid("fresh"));
+    expect(await bal()).toBe(start - 2);
+    await db.creditEntry.updateMany({
+      where: { requestId: rid("stale") },
+      data: { createdAt: new Date(Date.now() - (c.CREDIT_CONFIG.reservation_ttl_minutes + 1) * 60_000) },
+    });
+    expect(await c.releaseStaleReservations(userId)).toBe(1);
+    expect(await bal()).toBe(start - 1);
+    // 늦게 끝난 요청이 확정을 시도해도 다시 정산되지 않는다
+    expect((await c.confirmCredits(userId, rid("stale"))).settled).toBe(false);
+    await c.releaseCredits(userId, rid("fresh"));
   });
 });

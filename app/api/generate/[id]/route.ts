@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getQueue, queuePosition, releaseSlot, requestCancel, dropImage, type JobStage } from "@/lib/queue";
 import { finishCancelled } from "@/lib/queue/process";
+import { forbidden, isSameOrigin } from "@/lib/security";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -31,7 +32,8 @@ export async function GET(_req: Request, ctx: Ctx) {
 }
 
 /** 취소. 대기 중이면 바로 빼고 크레딧 반환, 처리 중이면 워커가 확인해 반환한다 */
-export async function DELETE(_req: Request, ctx: Ctx) {
+export async function DELETE(req: Request, ctx: Ctx) {
+  if (!isSameOrigin(req)) return forbidden();
   const job = await ownJob(ctx);
   if (!job) return notFound();
   await requestCancel(job.id!);

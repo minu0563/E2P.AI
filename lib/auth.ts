@@ -5,7 +5,8 @@ import { grantSignupCredits } from "@/lib/credits";
 import { db } from "@/lib/db";
 import type { GoogleIdentity } from "@/lib/google";
 
-const SESSION_COOKIE = "session";
+// 운영(HTTPS)에서는 __Host- 접두사: Secure·Path=/·도메인 고정이 강제되어 하위 도메인에서 덮어쓸 수 없다
+const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-session" : "session";
 const SESSION_DAYS = 30;
 
 const hash = (v: string) => createHash("sha256").update(v).digest("hex");

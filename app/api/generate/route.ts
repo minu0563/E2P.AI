@@ -9,6 +9,7 @@ import { CREDIT_CONFIG, releaseCredits, reserveCredits } from "@/lib/credits";
 import type { HistoryInput } from "@/lib/history";
 import { QUEUE_CONFIG, RATE_CONFIG, claimSlot, dropImage, getQueue, putImage, releaseSlot } from "@/lib/queue";
 import { clientIp, hit } from "@/lib/rate-limit";
+import { forbidden, isSameOrigin } from "@/lib/security";
 
 const { limits, features } = appConfig;
 
@@ -23,6 +24,7 @@ const fail = (code: BlockCode, status: number) =>
  * 진행 상태·결과는 GET /api/generate/[id], 취소는 DELETE /api/generate/[id].
  */
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return forbidden();
   if (!(await hit(`ip:${clientIp(request)}`, RATE_CONFIG.ip_per_minute, 60))) return fail("RATE_LIMITED", 429);
   const user = await getCurrentUser();
   if (!user) return fail("LOGIN_REQUIRED", 401);

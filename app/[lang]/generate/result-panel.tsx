@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
+import { fmt } from "@/lib/i18n/format";
 import type { FieldKey } from "@/lib/profile";
 
 export type Result =
@@ -27,6 +28,9 @@ export type Result =
       /** 차단 크레딧 안내: 이번에 차감됨 / 다음부터 차감됨 */
       creditNotice?: "blockFee" | "blockWarn" | null;
     };
+
+/** 큐 진행 상태 */
+export type Progress = { status: "queued"; position: number } | { status: "active"; stage: "analyzing" | "writing" };
 
 const APPEALABLE = ["AGE_UNCERTAIN", "SEXUAL_IMAGE", "SEXUAL_REQUEST", "THIRD_PARTY_CLAIM"];
 
@@ -57,6 +61,7 @@ export function ResultPanel({
   result,
   loading,
   elapsed,
+  progress,
   onRegenerate,
   canRegenerate,
   t,
@@ -64,6 +69,7 @@ export function ResultPanel({
   result: Result | null;
   loading: boolean;
   elapsed: number;
+  progress?: Progress | null;
   onRegenerate: () => void;
   canRegenerate: boolean;
   t: Dictionary["result"];
@@ -87,7 +93,15 @@ export function ResultPanel({
         {loading && (
           <div className="flex flex-1 flex-col justify-center gap-2 py-14 font-mono text-sm text-muted">
             <p>
-              {elapsed < 4 ? t.analyzing : t.writing}
+              {progress?.status === "queued"
+                ? progress.position > 0
+                  ? fmt(t.queued, { n: progress.position })
+                  : t.queuedSoon
+                : progress?.status === "active" && progress.stage === "writing"
+                  ? t.writing
+                  : progress?.status === "active"
+                    ? t.analyzing
+                    : t.sending}
               <span className="animate-pulse">▍</span>
             </p>
             <p className="text-xs text-faint tabular-nums">{elapsed}s</p>

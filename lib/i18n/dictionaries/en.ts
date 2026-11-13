@@ -114,6 +114,7 @@ const en: Dictionary = {
       state: "The sign-in request expired. Please try again.",
       expired: "The sign-in request expired. Please try again.",
       config: "Sign-in is not configured yet.",
+      rate: "Too many sign-in attempts. Please try again in a minute.",
     },
   },
   generator: {
@@ -176,6 +177,9 @@ const en: Dictionary = {
   },
   result: {
     title: "Result",
+    sending: "Sending…",
+    queued: "{n} in line…",
+    queuedSoon: "Starting soon…",
     analyzing: "Checking the image…",
     writing: "Writing the prompt…",
     empty: "Add an image and a request,\nthen press ‘Generate prompt’.",
@@ -208,6 +212,9 @@ const en: Dictionary = {
     LOGIN_REQUIRED: "Please sign in to continue.",
     NO_CREDITS: "You're out of credits.",
     DAILY_LIMIT: "You've reached today's limit. Please come back tomorrow.",
+    RATE_LIMITED: "Too many requests. Please try again in a moment.",
+    BUSY: "You already have a request in progress. Please wait for it to finish.",
+    QUEUE_FULL: "We're busy right now. Please try again in a moment.",
   },
   me: {
     title: "My account",

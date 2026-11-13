@@ -124,6 +124,7 @@ const ko = {
       state: "로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
       expired: "로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
       config: "로그인 설정이 아직 준비되지 않았습니다.",
+      rate: "로그인 시도가 너무 많습니다. 1분 뒤 다시 시도해 주세요.",
     } as Record<string, string>,
   },
   generator: {
@@ -185,6 +186,9 @@ const ko = {
   },
   result: {
     title: "결과",
+    sending: "요청을 보내는 중…",
+    queued: "대기 {n}번째…",
+    queuedSoon: "곧 시작합니다…",
     analyzing: "이미지를 확인하는 중…",
     writing: "프롬프트를 쓰는 중…",
     empty: "이미지와 요청을 입력하고\n‘프롬프트 생성’을 눌러 주세요.",
@@ -217,6 +221,9 @@ const ko = {
     LOGIN_REQUIRED: "로그인 후 이용할 수 있습니다.",
     NO_CREDITS: "크레딧이 부족합니다.",
     DAILY_LIMIT: "오늘 이용 한도에 도달했습니다. 내일 다시 이용해 주세요.",
+    RATE_LIMITED: "요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.",
+    BUSY: "이미 진행 중인 요청이 있습니다. 끝난 뒤에 다시 시도해 주세요.",
+    QUEUE_FULL: "지금 요청이 많습니다. 잠시 후 다시 시도해 주세요.",
   } as Record<string, string>,
   me: {
     title: "내 계정",

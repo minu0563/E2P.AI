@@ -7,7 +7,7 @@ import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
 import { fmt, fmtDate } from "@/lib/i18n/format";
 import type { FieldKey, Pace, Profile } from "@/lib/profile";
 import { ImageDrop } from "./image-drop";
-import { ResultPanel, type Result } from "./result-panel";
+import { ResultPanel, type Progress, type Result } from "./result-panel";
 
 type Props = {
   profileId: string;
@@ -58,10 +58,19 @@ export function Generator({
   const [autoFilled, setAutoFilled] = useState<Partial<Record<FieldKey, string>>>({});
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [loadedNote, setLoadedNote] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const jobRef = useRef<string | null>(null);
+
+  /** 취소: 서버 작업도 취소(크레딧 반환)하고 기다리기를 멈춘다 */
+  function cancel() {
+    const id = jobRef.current;
+    if (id) fetch(`/api/generate/${id}`, { method: "DELETE" }).catch(() => {});
+    abortRef.current?.abort();
+  }
   const router = useRouter();
 
   useEffect(() => {
@@ -153,9 +162,20 @@ export function Generator({
     }
     const ac = new AbortController();
     abortRef.current = ac;
+    setProgress(null);
     try {
+      // 1) 큐에 등록 → 2) 끝날 때까지 상태 확인
       const res = await fetch("/api/generate", { method: "POST", body: form, signal: ac.signal });
-      const data = (await res.json()) as Result;
+      const queued = (await res.json()) as Result | { ok: true; queued: true; jobId: string };
+      let data: Result;
+      if ("queued" in queued) {
+        jobRef.current = queued.jobId;
+        const done = await waitForJob(queued.jobId, ac.signal, setProgress);
+        if (!done || ("code" in done && done.code === "CANCELLED")) return;
+        data = done as Result;
+      } else {
+        data = queued;
+      }
       // 서버 메시지 대신 현재 언어의 문구로
       if (!data.ok && te[data.code]) data.message = te[data.code];
       setResult(data);
@@ -167,6 +187,8 @@ export function Generator({
       }
     } finally {
       setLoading(false);
+      setProgress(null);
+      jobRef.current = null;
     }
   }
 
@@ -392,7 +414,7 @@ export function Generator({
             {loading ? fmt(t.generating, { n: elapsed }) : t.submit}
           </button>
           {loading && (
-            <button onClick={() => abortRef.current?.abort()} className="btn btn-ghost py-3">
+            <button onClick={cancel} className="btn btn-ghost py-3">
               {t.cancel}
             </button>
           )}
@@ -400,7 +422,7 @@ export function Generator({
         {!file && <p className="mt-2 text-xs text-faint">{t.needImage}</p>}
       </section>
 
-      <ResultPanel result={result} loading={loading} elapsed={elapsed} onRegenerate={submit} canRegenerate={!!file} t={tr} />
+      <ResultPanel result={result} loading={loading} elapsed={elapsed} progress={progress} onRegenerate={submit} canRegenerate={!!file} t={tr} />
     </div>
   );
 }
@@ -535,4 +557,25 @@ function Label({ step, children }: { step: number; children: React.ReactNode }) 
       {children}
     </h2>
   );
+}
+
+/** 작업이 끝날 때까지 1초마다 상태를 확인한다. 취소되면 null */
+async function waitForJob(
+  id: string,
+  signal: AbortSignal,
+  onProgress: (p: Progress) => void,
+): Promise<Result | { ok: false; code: "CANCELLED" } | null> {
+  while (!signal.aborted) {
+    await new Promise((r) => setTimeout(r, 1000));
+    if (signal.aborted) return null;
+    const res = await fetch(`/api/generate/${id}`, { signal, cache: "no-store" });
+    if (res.status === 404) throw new Error("job gone");
+    const s = (await res.json()) as
+      | { status: "queued"; position: number }
+      | { status: "active"; stage: "analyzing" | "writing" }
+      | { status: "done"; result: Result };
+    if (s.status === "done") return s.result;
+    onProgress(s);
+  }
+  return null;
 }

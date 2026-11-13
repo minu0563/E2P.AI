@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+!.env.example
+/generated
+
+# 비공개 저장소(E2P.AI.SYSTEM): 시스템 프롬프트·규칙 엔진·키워드·가이드·안전 설정
+/system/

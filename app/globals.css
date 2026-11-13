@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* 관리자 화면(비공개 저장소 system/)은 .gitignore 대상이라 자동 탐색되지 않으므로 직접 지정 */
+@source "../system/admin";
 
 /*
  * E2P 디자인 토큰 — 종이·잉크 톤의 실무 도구 느낌.

@@ -9,6 +9,12 @@ import { LOCALE_COOKIE, isLocale, localeFromAcceptLanguage } from "@/lib/i18n/co
  */
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  // 관리자 화면: 로그인 쿠키가 없으면 바로 404 (관리자 여부는 화면에서 다시 확인)
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    const loggedIn = request.cookies.has("session") || request.cookies.has("__Host-session");
+    return loggedIn ? NextResponse.next() : new NextResponse("Not Found", { status: 404 });
+  }
   const first = pathname.split("/")[1];
 
   if (isLocale(first)) {
@@ -26,6 +32,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // API·인증 라우트·정적 파일은 제외
+  // API·인증 라우트·정적 파일은 제외 (관리자는 위에서 따로 처리)
   matcher: ["/((?!api|auth|_next|.*\\..*).*)"],
 };

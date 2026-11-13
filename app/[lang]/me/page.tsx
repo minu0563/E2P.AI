@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth";
-import { getBalance } from "@/lib/credits";
+import { dayStart, getBalance } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { fmt, fmtDate, fmtNumber, getDictionary, getLocale, type Dictionary, type Locale } from "@/lib/i18n";
 
@@ -40,12 +40,11 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/me");
 
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
-  const [balance, consent, today, total, blocked, entries, logs] = await Promise.all([
+  const today0 = dayStart();
+  const [balance, consent, today, total, blocked, entries, logs, fees] = await Promise.all([
     getBalance(user.id),
     db.consent.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),
-    db.generationLog.count({ where: { userId: user.id, outcome: "ok", createdAt: { gte: dayStart } } }),
+    db.generationLog.count({ where: { userId: user.id, outcome: "ok", createdAt: { gte: today0 } } }),
     db.generationLog.count({ where: { userId: user.id, outcome: "ok" } }),
     db.generationLog.count({ where: { userId: user.id, outcome: "block" } }),
     db.creditEntry.findMany({
@@ -54,7 +53,15 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
       take: 30,
     }),
     db.generationLog.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 20 }),
+    // 차단으로 차감된 요청 (사용 내역에 "차단 차감"으로 표시)
+    db.creditEntry.findMany({
+      where: { userId: user.id, kind: "confirm", note: { startsWith: "block_fee:" } },
+      select: { requestId: true },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
   ]);
+  const feeIds = new Set(fees.map((f) => f.requestId));
   const d = (x: Date) => fmtDate(x, locale);
   const n = (x: number) => fmtNumber(x, locale);
 
@@ -148,7 +155,7 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
               <tbody className="divide-y divide-border">
                 {entries.map((e) => (
                   <tr key={e.id}>
-                    <td className="py-2 pr-3 text-muted">{t.kinds[e.kind] ?? e.kind}</td>
+                    <td className="py-2 pr-3 text-muted">{e.kind === "reserve" && feeIds.has(e.requestId) ? t.kinds.blockFee : (t.kinds[e.kind] ?? e.kind)}</td>
                     <td className="py-2 pr-3 text-xs text-faint">
                       {t.types[e.creditType]}
                       {e.kind === "grant" && e.expiresAt && ` · ${fmt(t.expires, { date: d(e.expiresAt) })}`}

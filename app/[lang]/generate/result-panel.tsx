@@ -18,7 +18,15 @@ export type Result =
       /** 기록에서 불러온 결과 */
       loaded?: boolean;
     }
-  | { ok: false; requestId?: string; code: string; message: string; debug?: string[] };
+  | {
+      ok: false;
+      requestId?: string;
+      code: string;
+      message: string;
+      debug?: string[];
+      /** 차단 크레딧 안내: 이번에 차감됨 / 다음부터 차감됨 */
+      creditNotice?: "blockFee" | "blockWarn" | null;
+    };
 
 const APPEALABLE = ["AGE_UNCERTAIN", "SEXUAL_IMAGE", "SEXUAL_REQUEST", "THIRD_PARTY_CLAIM"];
 
@@ -93,6 +101,9 @@ export function ResultPanel({
         {!loading && result && !result.ok && (
           <div className="border-l-2 border-danger bg-danger-soft p-4 text-sm text-danger">
             <p>{result.message}</p>
+            {result.creditNotice && (
+              <p className="mt-2 text-xs font-medium">{t[result.creditNotice]}</p>
+            )}
             {result.code === "LOGIN_REQUIRED" && (
               <Link href="/login?next=/generate" className="btn btn-primary mt-3 px-3 py-1.5 text-xs">
                 {t.loginCta}

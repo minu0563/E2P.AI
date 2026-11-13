@@ -201,6 +201,8 @@ const ko = {
     shot: { selfie: "셀카", bust: "바스트 샷", waist_up: "웨이스트 샷", full_body: "전신", other: "기타 구도" } as Record<string, string>,
     view: { front: "정면", side: "측면", back: "뒷모습", other: "기타 시점" } as Record<string, string>,
     neutralized: "일부 표현이 조정되었습니다.",
+    blockFee: "오늘 차단이 반복되어 이번 요청은 크레딧이 차감되었습니다.",
+    blockWarn: "오늘 차단이 반복되고 있습니다. 다음 차단부터는 크레딧이 차감됩니다.",
     debug: "개발용 내부 원인 (운영에서는 표시 안 됨)",
   },
   errors: {
@@ -236,7 +238,7 @@ const ko = {
     blocked: "거절된 요청",
     history: "크레딧 내역",
     historyEmpty: "아직 내역이 없습니다.",
-    kinds: { grant: "지급", reserve: "사용", release: "반환", confirm: "확정", adjust: "조정" } as Record<string, string>,
+    kinds: { grant: "지급", reserve: "사용", release: "반환", confirm: "확정", adjust: "조정", blockFee: "차단 차감" } as Record<string, string>,
     types: { promo: "프로모션", subscription: "구독", topup: "충전" } as Record<string, string>,
     expires: "{date} 만료",
     recent: "최근 요청",

@@ -192,6 +192,8 @@ const en: Dictionary = {
     shot: { selfie: "Selfie", bust: "Bust shot", waist_up: "Waist-up", full_body: "Full body", other: "Other" },
     view: { front: "Front", side: "Side", back: "Back", other: "Other" },
     neutralized: "Some wording was adjusted.",
+    blockFee: "Repeated declined requests today: this one used a credit.",
+    blockWarn: "Several requests were declined today. Further declined requests will use a credit.",
     debug: "Internal reason (dev only, hidden in production)",
   },
   errors: {
@@ -227,7 +229,7 @@ const en: Dictionary = {
     blocked: "Declined",
     history: "Credit history",
     historyEmpty: "No history yet.",
-    kinds: { grant: "Granted", reserve: "Used", release: "Returned", confirm: "Confirmed", adjust: "Adjusted" },
+    kinds: { grant: "Granted", reserve: "Used", release: "Returned", confirm: "Confirmed", adjust: "Adjusted", blockFee: "Declined (charged)" },
     types: { promo: "Promo", subscription: "Subscription", topup: "Top-up" },
     expires: "Expires {date}",
     recent: "Recent requests",

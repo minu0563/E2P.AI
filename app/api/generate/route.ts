@@ -6,7 +6,7 @@ import { DEFAULT_PROFILE, FIELD_KEYS, PACES, getProfile, type Pace } from "@/lib
 import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
 import { randomUUID } from "node:crypto";
 import { getCurrentUser, hasCurrentConsent } from "@/lib/auth";
-import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, reserveCredits } from "@/lib/credits";
+import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, reserveCredits, settleBlocked } from "@/lib/credits";
 import { db } from "@/lib/db";
 import type { HistoryInput } from "@/lib/history";
 
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     return bad(e instanceof ImageError ? e.message : "이미지를 읽을 수 없습니다.");
   }
 
-  // 크레딧 예약 → 성공 시 확정, 차단·실패 시 반환
+  // 크레딧 예약 → 성공 시 확정, 실패·취소 시 반환, 차단은 하루 무료 횟수 뒤 차감
   const requestId = randomUUID();
   const cost = CREDIT_CONFIG.cost.generate;
   const reserved = await reserveCredits(user.id, requestId, cost);
@@ -120,15 +120,23 @@ export async function POST(request: Request) {
       pace,
       image,
     });
+    // 사용자가 취소했거나 연결이 끊겼으면 결과와 상관없이 반환
+    if (request.signal.aborted) {
+      await releaseCredits(user.id, requestId, "cancel");
+      await writeLog("cancel", null, 0);
+      return new Response(null, { status: 499 });
+    }
+    let creditNotice: "blockFee" | "blockWarn" | null = null;
     if (result.ok) {
       await confirmCredits(user.id, requestId);
       await writeLog("ok", null, cost, result.prompt);
     } else {
-      await releaseCredits(user.id, requestId);
-      await writeLog("block", result.code, 0);
+      const s = await settleBlocked(user.id, requestId, result.code);
+      creditNotice = s.blockFee ? "blockFee" : s.blockWarn ? "blockWarn" : null;
+      await writeLog("block", result.code, s.blockFee ? cost : 0);
     }
     const { total } = await getBalance(user.id);
-    return Response.json({ ...result, balance: total });
+    return Response.json({ ...result, balance: total, creditNotice });
   } catch (e) {
     console.error("[pipeline] unexpected", String(e).slice(0, 300));
     await releaseCredits(user.id, requestId).catch(() => {});

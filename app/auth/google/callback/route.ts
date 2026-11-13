@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   try {
     const identity = await exchangeCode(code, saved.v);
     const user = await upsertGoogleUser(identity);
+    if (user.suspendedAt) return to("/login?error=suspended");
     if (saved.a) await recordConsent(user.id);
     else if (!(await hasCurrentConsent(user.id))) return to("/login?error=consent");
     await startSession(user.id);

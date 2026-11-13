@@ -125,6 +125,7 @@ const ko = {
       expired: "로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
       config: "로그인 설정이 아직 준비되지 않았습니다.",
       rate: "로그인 시도가 너무 많습니다. 1분 뒤 다시 시도해 주세요.",
+      suspended: "이용이 정지된 계정입니다. 잘못되었다고 생각되면 문의해 주세요.",
     } as Record<string, string>,
   },
   generator: {

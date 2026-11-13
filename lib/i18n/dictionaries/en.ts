@@ -115,6 +115,7 @@ const en: Dictionary = {
       expired: "The sign-in request expired. Please try again.",
       config: "Sign-in is not configured yet.",
       rate: "Too many sign-in attempts. Please try again in a minute.",
+      suspended: "This account has been suspended. Contact us if you think this is a mistake.",
     },
   },
   generator: {

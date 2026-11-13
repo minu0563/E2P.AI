@@ -57,6 +57,7 @@ export async function getCurrentUser() {
     include: { user: true },
   });
   if (!session || session.expiresAt < new Date()) return null;
+  if (session.user.suspendedAt) return null; // 정지된 계정 (관리자 화면에서 정지 시 세션도 지운다)
   return session.user;
 }
 

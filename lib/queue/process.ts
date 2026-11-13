@@ -81,6 +81,7 @@ export async function processGenerateJob(job: Job<GenerateJobData>): Promise<Job
       requestId: d.requestId,
       profile,
       image,
+      safetyMode: d.test?.safetyShadow ? "shadow" : undefined,
       onStage: (stage: JobStage) => void job.updateProgress({ stage }).catch(() => {}),
       isCancelled: () => isCancelled(d.requestId),
     });
@@ -90,7 +91,7 @@ export async function processGenerateJob(job: Job<GenerateJobData>): Promise<Job
     let creditNotice: "blockFee" | "blockWarn" | null = null;
     if (result.ok) {
       await confirmCredits(d.userId, d.requestId);
-      await writeLog(d, "ok", null, cost, result.prompt);
+      await writeLog(d, "ok", null, d.test ? 0 : cost, result.prompt);
     } else {
       const s = await settleBlocked(d.userId, d.requestId, result.code as BlockCode);
       creditNotice = s.blockFee ? "blockFee" : s.blockWarn ? "blockWarn" : null;

@@ -10,6 +10,7 @@ import type { HistoryInput } from "@/lib/history";
 import { QUEUE_CONFIG, RATE_CONFIG, claimSlot, dropImage, getQueue, putImage, releaseSlot } from "@/lib/queue";
 import { clientIp, hit } from "@/lib/rate-limit";
 import { forbidden, isSameOrigin } from "@/lib/security";
+import { isTestAccount, testSafetyShadowAllowed } from "@/lib/test-accounts";
 
 const { limits, features } = appConfig;
 
@@ -25,11 +26,14 @@ const fail = (code: BlockCode, status: number) =>
  */
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return forbidden();
-  if (!(await hit(`ip:${clientIp(request)}`, RATE_CONFIG.ip_per_minute, 60))) return fail("RATE_LIMITED", 429);
+  const ipOk = await hit(`ip:${clientIp(request)}`, RATE_CONFIG.ip_per_minute, 60);
   const user = await getCurrentUser();
+  // 테스트 계정: 크레딧·속도 제한 없음 (TEST_ACCOUNTS)
+  const test = isTestAccount(user?.email);
+  if (!ipOk && !test) return fail("RATE_LIMITED", 429);
   if (!user) return fail("LOGIN_REQUIRED", 401);
   if (!(await hasCurrentConsent(user.id))) return fail("LOGIN_REQUIRED", 401);
-  if (!(await hit(`user:${user.id}`, RATE_CONFIG.user_per_minute, 60))) return fail("RATE_LIMITED", 429);
+  if (!test && !(await hit(`user:${user.id}`, RATE_CONFIG.user_per_minute, 60))) return fail("RATE_LIMITED", 429);
 
   let form: FormData;
   try {
@@ -85,13 +89,16 @@ export async function POST(request: Request) {
 
   // 사용자당 동시 1건
   const requestId = randomUUID();
-  if (!(await claimSlot(user.id, requestId))) return fail("BUSY", 429);
+  if (!test && !(await claimSlot(user.id, requestId))) return fail("BUSY", 429);
 
   // 크레딧 예약 → 워커가 성공 시 확정, 실패·취소 시 반환, 차단은 하루 무료 횟수 뒤 차감
-  const reserved = await reserveCredits(user.id, requestId, CREDIT_CONFIG.cost.generate);
-  if (!reserved.ok) {
-    await releaseSlot(user.id, requestId);
-    return fail(reserved.reason, 402);
+  // 테스트 계정은 예약하지 않는다 (예약이 없으면 워커의 확정·반환은 아무것도 하지 않음)
+  if (!test) {
+    const reserved = await reserveCredits(user.id, requestId, CREDIT_CONFIG.cost.generate);
+    if (!reserved.ok) {
+      await releaseSlot(user.id, requestId);
+      return fail(reserved.reason, 402);
+    }
   }
 
   // 다시 불러와 고칠 수 있도록 당시 입력값을 저장 (이미지는 저장하지 않음)
@@ -116,6 +123,8 @@ export async function POST(request: Request) {
         input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace },
         imageHash: image.hash,
         savedInput,
+        // 안전 검사 shadow는 개발 환경의 테스트 계정만 (운영에서는 모두 같은 규칙)
+        ...(test && { test: { safetyShadow: testSafetyShadowAllowed() } }),
       },
       { jobId: requestId },
     );

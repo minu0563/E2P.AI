@@ -22,6 +22,8 @@ export type GenerateJobData = {
   input: Omit<PipelineInput, "image" | "profile" | "requestId">;
   imageHash: string;
   savedInput: HistoryInput;
+  /** 테스트 계정 (웹이 판정해 넣는다). 크레딧 없음, safetyShadow면 안전 검사 shadow */
+  test?: { safetyShadow: boolean };
 };
 
 /** 진행 단계 (워커가 job.updateProgress로 알린다) */

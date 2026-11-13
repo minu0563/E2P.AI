@@ -41,6 +41,8 @@ export type PipelineInput = {
   aspectRatio: string;
   pace: Pace;
   image: { base64: string; hash: string };
+  /** 안전 검사 모드 덮어쓰기 (개발 환경의 테스트 계정만 "shadow") */
+  safetyMode?: "shadow";
   /** 진행 단계 알림 (큐 진행 상태 표시용) */
   onStage?: (stage: "analyzing" | "writing") => void;
   /** 사용자가 취소했는지. 분석이 끝난 뒤 확인해 생성 호출을 아낀다 */
@@ -201,7 +203,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   analysis = img && req ? { ...img, ...req } : null;
 
   // [4b] 규칙 엔진
-  const decision = decide(analysis, scan, config, { placeholder: input.placeholder });
+  const cfg: SafetyConfig = input.safetyMode === "shadow" ? { ...config, mode: "shadow" } : config;
+  const decision = decide(analysis, scan, cfg, { placeholder: input.placeholder });
   if (decision.action === "block") return fail(decision.code!, { decision: decision.internal });
   const neutralize = decision.action === "neutralize";
   const a = analysis!;

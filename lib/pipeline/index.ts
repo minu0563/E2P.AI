@@ -5,7 +5,14 @@ import { randomUUID } from "node:crypto";
 import { safetyConfig } from "@/system/config";
 import { getInferenceClient, models, type ChatResult } from "@/lib/inference";
 import { FIELD_KEYS, type Pace, type Profile } from "@/lib/profile";
-import { AnalysisSchema, analysisJsonSchema, type Analysis } from "@/system/safety/analysis-schema";
+import {
+  ImageAnalysisSchema,
+  RequestClassSchema,
+  imageAnalysisJsonSchema,
+  requestClassJsonSchema,
+  type Analysis,
+  type RequestClass,
+} from "@/system/safety/analysis-schema";
 import { decide, precheck, scanTexts, type SafetyConfig } from "@/system/safety/engine";
 import { markBlocked, wasBlocked } from "@/system/safety/history";
 import { BLOCK_MESSAGES, NEUTRALIZED_NOTICE, type BlockCode } from "@/lib/safety/messages";
@@ -18,7 +25,7 @@ import {
   type Fields,
   type KeyActionMode,
 } from "./assemble";
-import { ANALYSIS_SYSTEM, analysisUser, generationSystem } from "@/system/prompts";
+import { ANALYSIS_SYSTEM, ANALYSIS_USER, REQUEST_SYSTEM, generationSystem, requestUser } from "@/system/prompts";
 
 const config = safetyConfig as SafetyConfig;
 
@@ -58,7 +65,8 @@ export type PipelineResult =
  * 개발 모드 전용 내부 원인 표시. 운영(NODE_ENV=production)에서는 응답에 아예 넣지 않는다
  * (판정 라벨·키워드 노출은 우회에 악용될 수 있음 — CLAUDE.md 6.5).
  */
-const DEV = process.env.NODE_ENV !== "production";
+// 워커는 NODE_ENV가 비어 있을 수 있으므로 명시적으로 켠 경우만 (SAFETY_DEBUG=1, 운영에서는 절대 켜지 않는다)
+const DEV = process.env.NODE_ENV !== "production" && process.env.SAFETY_DEBUG === "1";
 
 function debugLines(
   code: BlockCode | null,
@@ -143,28 +151,54 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   input.onStage?.("analyzing");
 
-  // [3] 이미지 분석 + 판정 (한 번의 호출). 실패는 fail-closed
-  try {
-    const r = await client.chat({
-      model: models.analysis(),
-      system: ANALYSIS_SYSTEM,
-      user: analysisUser({ request: input.request, fields: input.fields }),
-      images: [input.image.base64],
-      schema: analysisJsonSchema,
-      temperature: 0,
-      // instruct 변형 기준 출력 약 170토큰. thinking 변형을 쓰면 ANALYSIS_MAX_TOKENS를 2500 이상으로
-      maxTokens: Number(process.env.ANALYSIS_MAX_TOKENS ?? 800),
-    });
-    stages.push(stageLog("analysis", r));
+  // [3] 이미지 분석(Qwen, 이미지만)과 요청 분류(생성 모델, 텍스트만)를 동시에. 하나라도 실패하면 fail-closed
+  const analyzeImage = async () => {
     try {
-      analysis = AnalysisSchema.parse(JSON.parse(r.content));
+      const r = await client.chat({
+        model: models.analysis(),
+        system: ANALYSIS_SYSTEM,
+        user: ANALYSIS_USER,
+        images: [input.image.base64],
+        schema: imageAnalysisJsonSchema,
+        temperature: 0,
+        // instruct 변형 기준 출력 약 170토큰. thinking 변형을 쓰면 ANALYSIS_MAX_TOKENS를 2500 이상으로
+        maxTokens: Number(process.env.ANALYSIS_MAX_TOKENS ?? 800),
+      });
+      stages.push(stageLog("analysis", r));
+      try {
+        return ImageAnalysisSchema.parse(JSON.parse(r.content));
+      } catch (e) {
+        stages.push({ stage: "analysis_parse", head: r.content.slice(0, 120), tail: r.content.slice(-200) });
+        throw e;
+      }
     } catch (e) {
-      stages.push({ stage: "analysis_parse", head: r.content.slice(0, 120), tail: r.content.slice(-200) });
-      throw e;
+      stages.push({ stage: "analysis", error: String(e).slice(0, 300) });
+      return null;
     }
-  } catch (e) {
-    stages.push({ stage: "analysis", error: String(e).slice(0, 300) });
-  }
+  };
+  const classifyRequest = async (): Promise<RequestClass | null> => {
+    const texts = [input.request, ...FIELD_KEYS.map((k) => input.fields[k])].filter((t) => t.trim());
+    if (!texts.length) return { request_level: "general", third_party_claim: false }; // 받은 글이 없다
+    try {
+      const r = await client.chat({
+        model: models.generation(),
+        system: REQUEST_SYSTEM,
+        user: requestUser({ request: input.request, fields: input.fields }),
+        schema: requestClassJsonSchema,
+        temperature: 0,
+        maxTokens: 100,
+        // 생성 호출과 같은 컨텍스트 크기여야 Ollama가 모델을 다시 올리지 않는다
+        contextTokens: Number(process.env.GENERATION_NUM_CTX ?? 16384),
+      });
+      stages.push(stageLog("request", r));
+      return RequestClassSchema.parse(JSON.parse(r.content));
+    } catch (e) {
+      stages.push({ stage: "request", error: String(e).slice(0, 300) });
+      return null;
+    }
+  };
+  const [img, req] = await Promise.all([analyzeImage(), classifyRequest()]);
+  analysis = img && req ? { ...img, ...req } : null;
 
   // [4b] 규칙 엔진
   const decision = decide(analysis, scan, config, { placeholder: input.placeholder });

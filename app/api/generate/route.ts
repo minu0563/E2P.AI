@@ -1,14 +1,14 @@
 import appConfig from "@/config/app.json";
 import { ImageError, processImage } from "@/lib/image";
-import { runPipeline } from "@/lib/pipeline";
 import type { Fields } from "@/lib/pipeline/assemble";
 import { DEFAULT_PROFILE, FIELD_KEYS, PACES, getProfile, type Pace } from "@/lib/profile";
 import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
 import { randomUUID } from "node:crypto";
 import { getCurrentUser, hasCurrentConsent } from "@/lib/auth";
-import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, reserveCredits, settleBlocked } from "@/lib/credits";
-import { db } from "@/lib/db";
+import { CREDIT_CONFIG, releaseCredits, reserveCredits } from "@/lib/credits";
 import type { HistoryInput } from "@/lib/history";
+import { QUEUE_CONFIG, RATE_CONFIG, claimSlot, dropImage, getQueue, putImage, releaseSlot } from "@/lib/queue";
+import { clientIp, hit } from "@/lib/rate-limit";
 
 const { limits, features } = appConfig;
 
@@ -18,11 +18,16 @@ const bad = (message: string, status = 400) =>
 const fail = (code: BlockCode, status: number) =>
   Response.json({ ok: false, code, message: BLOCK_MESSAGES[code] }, { status });
 
+/**
+ * 생성 요청 등록. 검증·속도 제한·크레딧 예약 뒤 큐에 넣고 바로 jobId를 돌려준다.
+ * 진행 상태·결과는 GET /api/generate/[id], 취소는 DELETE /api/generate/[id].
+ */
 export async function POST(request: Request) {
-  // TODO(3단계): 사용자별 속도 제한·동시 요청 제한·큐
+  if (!(await hit(`ip:${clientIp(request)}`, RATE_CONFIG.ip_per_minute, 60))) return fail("RATE_LIMITED", 429);
   const user = await getCurrentUser();
   if (!user) return fail("LOGIN_REQUIRED", 401);
   if (!(await hasCurrentConsent(user.id))) return fail("LOGIN_REQUIRED", 401);
+  if (!(await hit(`user:${user.id}`, RATE_CONFIG.user_per_minute, 60))) return fail("RATE_LIMITED", 429);
 
   let form: FormData;
   try {
@@ -73,11 +78,19 @@ export async function POST(request: Request) {
     return bad(e instanceof ImageError ? e.message : "이미지를 읽을 수 없습니다.");
   }
 
-  // 크레딧 예약 → 성공 시 확정, 실패·취소 시 반환, 차단은 하루 무료 횟수 뒤 차감
+  const queue = getQueue();
+  if ((await queue.getWaitingCount()) >= QUEUE_CONFIG.max_waiting) return fail("QUEUE_FULL", 503);
+
+  // 사용자당 동시 1건
   const requestId = randomUUID();
-  const cost = CREDIT_CONFIG.cost.generate;
-  const reserved = await reserveCredits(user.id, requestId, cost);
-  if (!reserved.ok) return fail(reserved.reason, 402);
+  if (!(await claimSlot(user.id, requestId))) return fail("BUSY", 429);
+
+  // 크레딧 예약 → 워커가 성공 시 확정, 실패·취소 시 반환, 차단은 하루 무료 횟수 뒤 차감
+  const reserved = await reserveCredits(user.id, requestId, CREDIT_CONFIG.cost.generate);
+  if (!reserved.ok) {
+    await releaseSlot(user.id, requestId);
+    return fail(reserved.reason, 402);
+  }
 
   // 다시 불러와 고칠 수 있도록 당시 입력값을 저장 (이미지는 저장하지 않음)
   const savedInput: HistoryInput = {
@@ -89,61 +102,27 @@ export async function POST(request: Request) {
     aspectRatio,
     pace,
   };
-  const writeLog = (outcome: string, blockCode: string | null, creditCost: number, prompt?: string) =>
-    db.generationLog
-      .create({
-        data: {
-          requestId,
-          userId: user.id,
-          mode: inputMode,
-          profile: profile.profile,
-          requestText: request_,
-          outcome,
-          blockCode,
-          creditCost,
-          prompt: prompt ?? null,
-          input: savedInput,
-        },
-      })
-      .catch((e) => console.error("[log] write failed", String(e).slice(0, 200)));
 
   try {
-    const result = await runPipeline({
-      requestId,
-      profile,
-      inputMode,
-      request: request_,
-      fields,
-      placeholder,
-      duration,
-      aspectRatio,
-      pace,
-      image,
-    });
-    // 사용자가 취소했거나 연결이 끊겼으면 결과와 상관없이 반환
-    if (request.signal.aborted) {
-      await releaseCredits(user.id, requestId, "cancel");
-      await writeLog("cancel", null, 0);
-      return new Response(null, { status: 499 });
-    }
-    let creditNotice: "blockFee" | "blockWarn" | null = null;
-    if (result.ok) {
-      await confirmCredits(user.id, requestId);
-      await writeLog("ok", null, cost, result.prompt);
-    } else {
-      const s = await settleBlocked(user.id, requestId, result.code);
-      creditNotice = s.blockFee ? "blockFee" : s.blockWarn ? "blockWarn" : null;
-      await writeLog("block", result.code, s.blockFee ? cost : 0);
-    }
-    const { total } = await getBalance(user.id);
-    return Response.json({ ...result, balance: total, creditNotice });
-  } catch (e) {
-    console.error("[pipeline] unexpected", String(e).slice(0, 300));
-    await releaseCredits(user.id, requestId).catch(() => {});
-    await writeLog("error", "SYSTEM_ERROR", 0);
-    return Response.json(
-      { ok: false, code: "SYSTEM_ERROR", message: BLOCK_MESSAGES.SYSTEM_ERROR },
-      { status: 500 },
+    await putImage(requestId, image);
+    await queue.add(
+      "generate",
+      {
+        requestId,
+        userId: user.id,
+        profileId: profile.profile,
+        input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace },
+        imageHash: image.hash,
+        savedInput,
+      },
+      { jobId: requestId },
     );
+  } catch (e) {
+    console.error("[generate] enqueue failed", String(e).slice(0, 300));
+    await dropImage(requestId).catch(() => {});
+    await releaseCredits(user.id, requestId, "error").catch(() => {});
+    await releaseSlot(user.id, requestId).catch(() => {});
+    return fail("SYSTEM_ERROR", 503);
   }
+  return Response.json({ ok: true, queued: true, jobId: requestId }, { status: 202 });
 }

@@ -1,0 +1,43 @@
+/* 로그인 화면 전용 스타일 */
+
+/* 배경: 은은한 점 무늬가 가운데에서 바깥으로 옅어진다 */
+.login-backdrop {
+  background-image: radial-gradient(color-mix(in oklab, var(--faint) 55%, transparent) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 20%, transparent 75%);
+}
+
+/* 큰 E2P: 어두운 그라데이션이 왼쪽 → 오른쪽으로 계속 흐른다 */
+.login-flow {
+  background-image: linear-gradient(
+    90deg,
+    var(--text) 0%,
+    var(--faint) 20%,
+    var(--text) 40%,
+    var(--text) 50%,
+    var(--faint) 70%,
+    var(--text) 90%,
+    var(--text) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: login-flow 4s linear infinite;
+}
+
+@keyframes login-flow {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-flow {
+    animation: none;
+  }
+}

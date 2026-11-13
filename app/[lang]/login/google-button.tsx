@@ -1,0 +1,48 @@
+"use client";
+
+import { useState } from "react";
+import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
+
+export function GoogleButton({ next, t }: { next?: string; t: Dictionary["login"] }) {
+  const [agree, setAgree] = useState(false);
+  const href = `/auth/google?agree=1${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  const link = (href: string, label: string) => (
+    <a href={href} target="_blank" className="text-text underline decoration-faint underline-offset-2 hover:decoration-accent">
+      {label}
+    </a>
+  );
+  return (
+    <div className="mt-9 flex flex-col gap-4 text-left">
+      <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-relaxed text-muted">
+        <input
+          type="checkbox"
+          checked={agree}
+          onChange={(e) => setAgree(e.target.checked)}
+          className="mt-[3px] size-4 shrink-0 accent-accent"
+        />
+        <span>
+          {t.agree1}
+          {link("/terms", t.terms)}, {link("/privacy", t.privacy)}, {link("/policy", t.policy)}
+          {t.agreeTail}
+        </span>
+      </label>
+
+      {/* Google 표준 버튼 모양: 흰 바탕 + 로고 */}
+      <a
+        href={agree ? href : undefined}
+        aria-disabled={!agree}
+        className={`flex h-11 items-center justify-center gap-3 rounded-md border border-[#dadce0] bg-white text-sm font-medium text-[#1f1f1f] transition ${
+          agree ? "hover:bg-[#f7f8f8] hover:shadow-sm" : "pointer-events-none opacity-40"
+        }`}
+      >
+        <svg viewBox="0 0 48 48" className="size-[18px]" aria-hidden>
+          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z" />
+          <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.3 5.7c4.3-4 7-9.8 7-17.1z" />
+          <path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.6 10.7l7.9-6.1z" />
+          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.8-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z" />
+        </svg>
+        {t.button}
+      </a>
+    </div>
+  );
+}

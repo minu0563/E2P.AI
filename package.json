@@ -7,11 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "worker": "node --conditions=react-server --env-file-if-exists=.env.local --import tsx worker/index.ts",
+    "dev:all": "concurrently -k -n web,worker -c gray,yellow \"next dev\" \"npm run worker\""
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "bullmq": "^5.81.5",
+    "ioredis": "^5.11.1",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -24,11 +28,13 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.5",
     "dotenv": "^18.0.10",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "prisma": "^7.10.1",
     "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.0"
   }

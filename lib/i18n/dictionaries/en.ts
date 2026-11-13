@@ -239,7 +239,7 @@ const en: Dictionary = {
     kinds: { grant: "Granted", reserve: "Used", release: "Returned", confirm: "Confirmed", adjust: "Adjusted", blockFee: "Declined (charged)" },
     types: { promo: "Promo", subscription: "Subscription", topup: "Top-up" },
     expires: "Expires {date}",
-    recent: "Recent requests",
+    recent: "Recent prompts",
     recentEmpty: "You haven't generated a prompt yet.",
     outcomes: { ok: "Done", block: "Declined", error: "Error" },
     open: "Open",

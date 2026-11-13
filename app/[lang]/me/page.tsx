@@ -50,9 +50,10 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
     db.creditEntry.findMany({
       where: { userId: user.id, kind: { not: "confirm" } },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 300,
     }),
-    db.generationLog.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 20 }),
+    // 다시 열어 고칠 수 있는 성공한 요청만 (거절·오류는 이용 현황의 숫자로만)
+    db.generationLog.findMany({ where: { userId: user.id, outcome: "ok" }, orderBy: { createdAt: "desc" }, take: 10 }),
     // 차단으로 차감된 요청 (사용 내역에 "차단 차감"으로 표시)
     db.creditEntry.findMany({
       where: { userId: user.id, kind: "confirm", note: { startsWith: "block_fee:" } },
@@ -62,6 +63,34 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
     }),
   ]);
   const feeIds = new Set(fees.map((f) => f.requestId));
+
+  // 크레딧 내역: 요청별로 예약·반환을 합쳐 실제로 바뀐 것만 보여준다 (반환되어 0이 된 요청은 숨김)
+  type Row = { id: string; label: string; creditType: (typeof entries)[number]["creditType"]; amount: number; at: Date; expiresAt: Date | null };
+  const rows: Row[] = [];
+  const byRequest = new Map<string, Row>();
+  for (const e of entries) {
+    if (e.kind === "grant" || e.kind === "adjust" || !e.requestId) {
+      rows.push({ id: e.id, label: t.kinds[e.kind] ?? e.kind, creditType: e.creditType, amount: e.amount, at: e.createdAt, expiresAt: e.kind === "grant" ? e.expiresAt : null });
+      continue;
+    }
+    const r = byRequest.get(e.requestId);
+    if (r) {
+      r.amount += e.amount;
+      if (e.createdAt < r.at) r.at = e.createdAt;
+    } else {
+      const row: Row = {
+        id: e.requestId,
+        label: feeIds.has(e.requestId) ? t.kinds.blockFee : t.kinds.reserve,
+        creditType: e.creditType,
+        amount: e.amount,
+        at: e.createdAt,
+        expiresAt: null,
+      };
+      byRequest.set(e.requestId, row);
+      rows.push(row);
+    }
+  }
+  const history = rows.filter((r) => r.amount !== 0).slice(0, 20);
   const d = (x: Date) => fmtDate(x, locale);
   const n = (x: number) => fmtNumber(x, locale);
 
@@ -119,14 +148,7 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
           ) : (
             <ul className="-my-2 divide-y divide-border">
               {logs.map((l) => (
-                <li key={l.id} className="grid grid-cols-[64px_1fr_auto] items-center gap-3 py-2.5 text-sm">
-                  <span
-                    className={`font-mono text-[11px] ${
-                      l.outcome === "ok" ? "text-ok" : l.outcome === "block" ? "text-warn" : "text-danger"
-                    }`}
-                  >
-                    ● {t.outcomes[l.outcome] ?? l.outcome}
-                  </span>
+                <li key={l.id} className="grid grid-cols-[1fr_auto] items-center gap-3 py-2.5 text-sm">
                   <span className="min-w-0">
                     <span className="block truncate">{l.requestText || t.noRequestText}</span>
                     <span className="font-mono text-[11px] text-faint">{d(l.createdAt)}</span>
@@ -148,23 +170,23 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
         </Block>
 
         <Block title={t.history}>
-          {entries.length === 0 ? (
+          {history.length === 0 ? (
             <p className="text-sm text-faint">{t.historyEmpty}</p>
           ) : (
             <table className="-my-1 w-full text-sm">
               <tbody className="divide-y divide-border">
-                {entries.map((e) => (
+                {history.map((e) => (
                   <tr key={e.id}>
-                    <td className="py-2 pr-3 text-muted">{e.kind === "reserve" && feeIds.has(e.requestId) ? t.kinds.blockFee : (t.kinds[e.kind] ?? e.kind)}</td>
+                    <td className="py-2 pr-3 text-muted">{e.label}</td>
                     <td className="py-2 pr-3 text-xs text-faint">
                       {t.types[e.creditType]}
-                      {e.kind === "grant" && e.expiresAt && ` · ${fmt(t.expires, { date: d(e.expiresAt) })}`}
+                      {e.expiresAt && ` · ${fmt(t.expires, { date: d(e.expiresAt) })}`}
                     </td>
                     <td className={`py-2 pr-3 text-right font-mono tabular-nums ${e.amount > 0 ? "text-ok" : ""}`}>
                       {e.amount > 0 ? "+" : ""}
                       {n(e.amount)}
                     </td>
-                    <td className="py-2 text-right font-mono text-[11px] text-faint">{d(e.createdAt)}</td>
+                    <td className="py-2 text-right font-mono text-[11px] text-faint">{d(e.at)}</td>
                   </tr>
                 ))}
               </tbody>

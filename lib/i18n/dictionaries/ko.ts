@@ -248,7 +248,7 @@ const ko = {
     kinds: { grant: "지급", reserve: "사용", release: "반환", confirm: "확정", adjust: "조정", blockFee: "차단 차감" } as Record<string, string>,
     types: { promo: "프로모션", subscription: "구독", topup: "충전" } as Record<string, string>,
     expires: "{date} 만료",
-    recent: "최근 요청",
+    recent: "최근 프롬프트",
     recentEmpty: "아직 생성한 프롬프트가 없습니다.",
     outcomes: { ok: "성공", block: "거절", error: "오류" } as Record<string, string>,
     open: "열기",

@@ -1,0 +1,33 @@
+{
+  "profile": "minimax-h3-i2v",
+  "mode": "i2v",
+  "label": "MiniMax H3 · 이미지 → 영상",
+  "guide": "system/guides/h3-i2v.md",
+  "safety_module": "i2v",
+  "placeholder": "{ 유저가 직접 입력할 내용 }",
+  "output_language": "en",
+  "max_output_chars": 7000,
+  "duration": { "min": 4, "max": 15, "default": 8 },
+  "aspect_ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+  "groups": [
+    { "key": "action", "label": "동작", "open": true },
+    { "key": "look", "label": "인물·장면", "open": true },
+    { "key": "direction", "label": "연출 (선택)", "open": false }
+  ],
+  "fields": [
+    { "key": "key_action", "group": "action", "label": "핵심 동작", "hint": "예: 뒤돌아 손을 흔들며 웃는다", "tier": "basic" },
+    { "key": "dialogue", "group": "action", "label": "대사", "hint": "비우면 대사 없음", "tier": "basic" },
+    { "key": "appearance", "group": "look", "label": "복장", "hint": "예: 흰 셔츠와 청바지", "tier": "basic" },
+    { "key": "scene", "group": "look", "label": "장면·배경", "hint": "예: 노을 지는 해변", "tier": "basic" },
+    { "key": "camera", "group": "direction", "label": "카메라", "hint": "비우면 원본 구도 유지", "tier": "advanced" },
+    { "key": "lighting", "group": "direction", "label": "조명·색감", "hint": "예: 오후 자연광", "tier": "advanced" },
+    { "key": "mood", "group": "direction", "label": "스타일", "hint": "비우면 실사는 현실적, 그림은 원본 화풍", "tier": "advanced" },
+    { "key": "audio", "group": "direction", "label": "사운드", "hint": "예: 파도 소리, 배경 음악 없음", "tier": "advanced" }
+  ],
+  "paces": [
+    { "key": "slow", "label": "천천히" },
+    { "key": "normal", "label": "보통" },
+    { "key": "fast", "label": "빠름" }
+  ],
+  "_comment": "자세·인물 행동은 핵심 동작으로 합침(모델이 자세·흐름을 자동 구성). tier: 나중에 유료 세밀 조절용 표시."
+}

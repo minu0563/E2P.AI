@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String    @id @default(cuid())
+  email      String    @unique
+  /// Google 계정 고유 ID (OIDC sub). 이메일이 바뀌어도 같은 사람
+  googleSub  String?   @unique
+  name       String?
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  sessions   Session[]
+  consents   Consent[]
+  credits    CreditEntry[]
+  logs       GenerationLog[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// 약관 동의 시각·버전 기록
+model Consent {
+  id        String   @id @default(cuid())
+  userId    String
+  version   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, version])
+}
+
+enum CreditKind {
+  grant    // 지급 (+). grantId = 자기 자신
+  reserve  // 요청 시작 시 예약 (-)
+  release  // 실패·차단 시 예약 반환 (+)
+  confirm  // 성공 확정 표시 (0)
+  adjust   // 관리자 조정 (+/-)
+}
+
+enum CreditType {
+  promo
+  subscription
+  topup
+}
+
+/// 크레딧 원장 (추가만 한다. 수정·삭제 금지 — 사람이 직접 검토할 코드).
+/// 잔액 = 유효기간이 남은 지급분(grantId)별 amount 합.
+model CreditEntry {
+  id             String     @id
+  userId         String
+  kind           CreditKind
+  creditType     CreditType
+  amount         Int
+  /// 어느 지급분에서 나가고 들어왔는지 (지급 항목은 자기 id)
+  grantId        String
+  requestId      String?
+  /// 지급 항목만: 유효기간 (없으면 무기한)
+  expiresAt      DateTime?
+  /// 같은 이벤트가 두 번 처리되지 않게 (결제 웹훅 중복 등)
+  idempotencyKey String?    @unique
+  note           String?
+  createdAt      DateTime   @default(now())
+  user           User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, kind])
+  @@index([grantId])
+  @@index([requestId])
+}
+
+/// 요청 로그 (텍스트·메타데이터만, 이미지 원본 저장 금지)
+model GenerationLog {
+  id          String   @id @default(cuid())
+  requestId   String   @unique
+  userId      String
+  mode        String
+  profile     String
+  requestText String
+  outcome     String
+  blockCode   String?
+  creditCost  Int
+  /// 생성된 프롬프트 (성공한 경우). 다시 불러와 고칠 수 있게
+  prompt      String?
+  /// 당시 입력값: 모드, 항목별 값, 진행 속도, 길이, 비율, 빈칸 모드 (이미지는 저장하지 않음)
+  input       Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

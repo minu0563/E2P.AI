@@ -14,6 +14,9 @@ model User {
   googleSub  String?   @unique
   name       String?
   verifiedAt DateTime?
+  /// 관리자가 정지한 시각 (있으면 로그인·생성 불가)
+  suspendedAt   DateTime?
+  suspendReason String?
   createdAt  DateTime  @default(now())
   sessions   Session[]
   consents   Consent[]
@@ -100,4 +103,17 @@ model GenerationLog {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+/// 관리자 작업 기록 (누가 언제 무엇을). 추가만 한다
+model AdminLog {
+  id           String   @id @default(cuid())
+  adminEmail   String
+  action       String
+  targetUserId String?
+  detail       Json?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetUserId])
 }

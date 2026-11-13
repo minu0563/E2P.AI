@@ -20,7 +20,8 @@ function Ko() {
       <h2>1. 자동 반환</h2>
       <ul>
         <li>시스템 오류로 프롬프트가 만들어지지 않은 경우, 예약된 크레딧은 자동으로 돌아갑니다.</li>
-        <li>정책에 따라 거절된 요청에는 크레딧이 차감되지 않습니다.</li>
+        <li>이용자가 생성을 취소한 경우에도 크레딧은 돌아갑니다.</li>
+        <li>정책에 따라 거절된 요청은 하루 3회까지 크레딧이 돌아갑니다. 같은 날 요청 내용 때문에 3회를 넘게 거절되면, 그 뒤 거절된 요청의 크레딧은 돌아가지 않습니다(이미지 판정으로 거절된 경우는 항상 돌아갑니다).</li>
       </ul>
 
       <h2>2. 무상 크레딧</h2>
@@ -61,7 +62,8 @@ function En() {
       <h2>1. Automatic returns</h2>
       <ul>
         <li>If a prompt is not produced because of a system error, the reserved credit is returned automatically.</li>
-        <li>Requests declined by our policy do not use credits.</li>
+        <li>Cancelled generations are also returned.</li>
+        <li>Up to 3 declined requests per day are returned. After more than 3 requests are declined in a day because of what was requested, the credit for further declined requests is not returned (requests declined because of the image are always returned).</li>
       </ul>
 
       <h2>2. Free credits</h2>

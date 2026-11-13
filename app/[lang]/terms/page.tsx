@@ -52,7 +52,8 @@ function Ko() {
       <h2>제6조 (크레딧)</h2>
       <ul>
         <li>프롬프트를 한 번 성공적으로 만들 때 1크레딧이 차감됩니다(기능별 차감량은 화면에 표시).</li>
-        <li>정책에 따라 거절되었거나 시스템 오류로 만들어지지 않은 요청에는 크레딧을 차감하지 않습니다.</li>
+        <li>시스템 오류로 만들어지지 않았거나 이용자가 취소한 요청에는 크레딧을 차감하지 않습니다.</li>
+        <li>정책에 따라 거절된 요청은 하루 3회까지 크레딧을 차감하지 않습니다. 같은 날 요청 내용 때문에 거절된 요청이 3회를 넘으면, 그 뒤 거절된 요청에는 크레딧이 차감됩니다. 이미지 판정으로 거절된 요청은 횟수와 상관없이 차감하지 않습니다.</li>
         <li>가입·이벤트로 무상 지급된 크레딧에는 유효기간이 있으며, 기간이 지나면 소멸합니다. 무상 크레딧은 환불 대상이 아닙니다.</li>
         <li>유료 크레딧의 환불은 <Link href="/refund">환불 정책</Link>을 따릅니다.</li>
         <li>하루 이용 건수 등 이용 한도를 둘 수 있습니다.</li>
@@ -138,7 +139,8 @@ function En() {
       <h2>5. Credits</h2>
       <ul>
         <li>Each successful prompt uses 1 credit unless the screen states otherwise.</li>
-        <li>Requests declined by our policy or failed due to system errors do not use credits.</li>
+        <li>Requests that fail due to system errors or that you cancel do not use credits.</li>
+        <li>Up to 3 requests declined by our policy per day do not use credits. After more than 3 requests are declined in a day because of what was requested, further declined requests use a credit. Requests declined because of the image never use credits.</li>
         <li>Free credits (sign-up, promotions) expire after the stated period and are not refundable.</li>
         <li>Paid credits are refunded according to our <Link href="/refund">Refund Policy</Link>.</li>
         <li>Daily usage limits may apply.</li>

@@ -42,7 +42,17 @@ export type AssembleContext = {
   pace?: Pace;
   /** 사용자가 대사를 줬는지. 없으면 말하지 않게 명시 */
   hasDialogue?: boolean;
+  /** 사용자가 화면 밖 신체(전신·다리·신발 등)나 카메라 확장을 요청했는지. 아니면 프레임 확장 문장을 버린다 */
+  allowFrameExtension?: boolean;
 };
+
+/** 프레임 확장(전신 보이기)을 허용하는 사용자 표현. 없으면 원본 구도 유지 (모델이 멋대로 넓히지 않게) */
+const FRAME_EXTENSION_HINT =
+  /전신|온몸|다리|발[을이가로]|발끝|신발|구두|하의|바지|치마|무릎|걷|걸어|뛰|달리|점프|줌\s*아웃|멀어|뒤로\s*물러|넓게|full[\s-]?body|\blegs?\b|\bfeet\b|\bshoes\b|\bpants\b|\bskirt\b|\bwalk|\brun|\bjump|zoom(s|ing)?\s*out|pull(s|ing)?\s*back|\bwide\b/i;
+
+export function wantsFrameExtension(texts: string[]) {
+  return FRAME_EXTENSION_HINT.test(texts.filter(Boolean).join("\n"));
+}
 
 const NONE = /^(none|n\/?a|no( background)? music|없음|-)?\.?$/i;
 
@@ -107,7 +117,7 @@ export function assemblePrompt(blocks: Blocks, ctx: AssembleContext) {
     blocks.keep_original_pose && ctx.personCentric
       ? `Keep ${who}'s position, pose and face exactly 100% identical to the original image.`
       : "",
-    sentence(blocks.frame_extension),
+    ctx.allowFrameExtension ? sentence(blocks.frame_extension) : "",
     ctx.personCentric
       ? `${capitalize(who)} looks directly into the camera at all times and stays in frame at all times.`
       : "",

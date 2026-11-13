@@ -143,3 +143,17 @@ describe("checkOutput", () => {
     expect(check({ ...blocks, event: "she gets naked" }, "auto")).toContain("EXPLICIT_OUTPUT");
   });
 });
+
+describe("프레임 확장(전신 보이기)은 사용자가 요청했을 때만", async () => {
+  const { wantsFrameExtension } = await import("@/lib/pipeline/assemble");
+  it("전신·다리·걷기·줌아웃 같은 요청이면 허용", () => {
+    for (const t of ["전신이 보이게", "해변을 걷는다", "카메라가 점점 멀어진다", "full body shot", "she walks away", "zooms out"]) {
+      expect(wantsFrameExtension([t])).toBe(true);
+    }
+  });
+  it("상반신 동작만 있으면 원본 구도 유지", () => {
+    for (const t of ["손을 흔든다", "뒤돌아보며 웃는다", "waves both hands", "Looks back and smiles", ""]) {
+      expect(wantsFrameExtension([t])).toBe(false);
+    }
+  });
+});

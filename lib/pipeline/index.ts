@@ -21,6 +21,7 @@ import {
   assemblePrompt,
   blocksJsonSchema,
   checkOutput,
+  wantsFrameExtension,
   type Blocks,
   type Fields,
   type KeyActionMode,
@@ -258,6 +259,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     placeholder: profile.placeholder,
     pace: input.pace,
     hasDialogue: !!input.fields.dialogue.trim(),
+    allowFrameExtension: wantsFrameExtension([input.request, input.fields.key_action, input.fields.camera]),
   };
 
   const inputWasSuggestive = a.request_level === "suggestive" || scan.suggestive.length > 0;

@@ -1,0 +1,39 @@
+/* 메인 화면 전용 (개발 서버가 globals.css 변경을 늦게 반영하는 문제를 피해 페이지 옆에 둔다) */
+
+/* 사진 자리 빗금 */
+.home-hatch {
+  background-image: repeating-linear-gradient(45deg, var(--border) 0 1px, transparent 1px 9px);
+}
+
+/* 마무리의 큰 E2P: 그라데이션이 왼쪽 → 오른쪽으로 흐른다 (로그인과 같은 효과) */
+.home-flow {
+  background-image: linear-gradient(
+    90deg,
+    var(--bg) 0%,
+    var(--faint) 20%,
+    var(--bg) 40%,
+    var(--bg) 50%,
+    var(--faint) 70%,
+    var(--bg) 90%,
+    var(--bg) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: home-flow 5s linear infinite;
+}
+@keyframes home-flow {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-flow {
+    animation: none;
+  }
+}

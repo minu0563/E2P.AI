@@ -1,0 +1,7 @@
+{
+  "signup": { "amount": 10, "credit_type": "promo", "expires_days": 30 },
+  "monthly_promo_budget": 5000,
+  "daily_limit": 50,
+  "cost": { "generate": 1 },
+  "_comment": "코드 수정 없이 조정. signup: 가입 시 무료 지급(유효기간 필수). monthly_promo_budget: 이번 달 전체 프로모션 지급 합이 넘으면 지급 중단. daily_limit: 사용자별 하루 성공 생성 상한."
+}

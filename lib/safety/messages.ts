@@ -9,7 +9,10 @@ export type BlockCode =
   | "INVALID_INPUT"
   | "LOGIN_REQUIRED"
   | "NO_CREDITS"
-  | "DAILY_LIMIT";
+  | "DAILY_LIMIT"
+  | "RATE_LIMITED"
+  | "BUSY"
+  | "QUEUE_FULL";
 
 /** 사용자에게는 카테고리 수준만. 키워드·라벨·점수는 노출하지 않는다. */
 export const BLOCK_MESSAGES: Record<BlockCode, string> = {
@@ -24,6 +27,9 @@ export const BLOCK_MESSAGES: Record<BlockCode, string> = {
   LOGIN_REQUIRED: "로그인 후 이용할 수 있습니다.",
   NO_CREDITS: "크레딧이 부족합니다.",
   DAILY_LIMIT: "오늘 이용 한도에 도달했습니다. 내일 다시 이용해 주세요.",
+  RATE_LIMITED: "요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.",
+  BUSY: "이미 진행 중인 요청이 있습니다. 끝난 뒤에 다시 시도해 주세요.",
+  QUEUE_FULL: "지금 요청이 많습니다. 잠시 후 다시 시도해 주세요.",
 };
 
 export const NEUTRALIZED_NOTICE = "일부 표현이 조정되었습니다.";

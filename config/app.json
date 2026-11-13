@@ -8,5 +8,18 @@
     "max_request_chars": 300,
     "max_field_chars": 200
   },
-  "_comment": "placeholder_mode는 유료 기능 플래그(결제 연동 전까지 개발용으로 true)."
+  "queue": {
+    "worker_concurrency": 1,
+    "max_waiting": 50,
+    "max_wait_seconds": 300,
+    "image_ttl_seconds": 600,
+    "result_ttl_seconds": 600
+  },
+  "rate_limit": {
+    "user_concurrent": 1,
+    "user_per_minute": 6,
+    "ip_per_minute": 30,
+    "login_ip_per_minute": 20
+  },
+  "_comment": "placeholder_mode는 유료 기능 플래그(결제 연동 전까지 개발용으로 true). queue: worker_concurrency=워커 1개가 동시에 처리하는 수(로컬 GPU는 1), max_waiting=대기열 상한(넘으면 잠시 후 다시), max_wait_seconds=이보다 오래 기다린 작업은 처리하지 않고 크레딧 반환(예약 자동 반환 10분보다 짧게), image_ttl_seconds=큐에 올린 암호화 이미지 최대 보관, result_ttl_seconds=결과 조회 가능 시간. rate_limit: 사용자 동시 요청 수, 사용자·IP 1분당 생성 요청, 로그인 IP 1분당 요청."
 }

@@ -34,6 +34,10 @@ export type PipelineInput = {
   aspectRatio: string;
   pace: Pace;
   image: { base64: string; hash: string };
+  /** 진행 단계 알림 (큐 진행 상태 표시용) */
+  onStage?: (stage: "analyzing" | "writing") => void;
+  /** 사용자가 취소했는지. 분석이 끝난 뒤 확인해 생성 호출을 아낀다 */
+  isCancelled?: () => Promise<boolean>;
 };
 
 export type PipelineResult =
@@ -115,7 +119,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const scan = scanTexts([input.request, ...FIELD_KEYS.map((k) => input.fields[k])]);
 
   const fail = (code: BlockCode, extra: Record<string, unknown> = {}): PipelineResult => {
-    if (code === "SEXUAL_REQUEST" || code === "THIRD_PARTY_CLAIM") markBlocked(input.image.hash);
+    if (code === "SEXUAL_REQUEST" || code === "THIRD_PARTY_CLAIM") {
+      markBlocked(input.image.hash).catch((e) => console.error("[pipeline] markBlocked failed", String(e).slice(0, 200)));
+    }
     log({ requestId, outcome: "block", code, profile: profile.profile, inputMode: input.inputMode, stages, totalMs: Date.now() - t0, ...extra });
     return {
       ok: false,
@@ -131,9 +137,11 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   if (pre) return fail(pre, { scan });
 
   // 우회 루프 차단
-  if (input.placeholder && wasBlocked(input.image.hash)) {
+  if (input.placeholder && (await wasBlocked(input.image.hash))) {
     return fail("MODE_RESTRICTED", { bypassAttempt: true });
   }
+
+  input.onStage?.("analyzing");
 
   // [3] 이미지 분석 + 판정 (한 번의 호출). 실패는 fail-closed
   try {
@@ -163,6 +171,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   if (decision.action === "block") return fail(decision.code!, { decision: decision.internal });
   const neutralize = decision.action === "neutralize";
   const a = analysis!;
+  if (await input.isCancelled?.()) return fail("SYSTEM_ERROR", { cancelled: true });
+  input.onStage?.("writing");
 
   // [5] 프롬프트 생성 — 플레이스홀더 모드면 핵심 동작은 받지도 생성하지도 않는다
   const keyMode: KeyActionMode = input.placeholder

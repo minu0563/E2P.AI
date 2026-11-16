@@ -139,6 +139,8 @@ const ko = {
     remove: "다른 이미지",
     errTooBig: "이미지는 {mb}MB 이하만 가능합니다.",
     errType: "JPG, PNG, WEBP 이미지만 올릴 수 있습니다.",
+    errRead: "이미지를 읽을 수 없습니다. 다른 파일로 시도해 주세요.",
+    preparing: "이미지 준비 중…",
     motion: "원하는 움직임",
     tabNatural: "자연어",
     tabFields: "항목별 입력",

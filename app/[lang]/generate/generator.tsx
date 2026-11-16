@@ -18,7 +18,7 @@ type Props = {
   aspectRatios: string[];
   placeholder: string;
   placeholderEnabled: boolean;
-  limits: { max_upload_bytes: number; max_request_chars: number; max_field_chars: number };
+  limits: { max_source_bytes: number; max_image_side: number; max_request_chars: number; max_field_chars: number };
   locale: string;
   t: Dictionary["generator"];
   tr: Dictionary["result"];
@@ -230,7 +230,8 @@ export function Generator({
             <Label step={1}>{t.image}</Label>
             <ImageDrop
               file={file}
-              maxBytes={limits.max_upload_bytes}
+              maxBytes={limits.max_source_bytes}
+              maxSide={limits.max_image_side}
               t={t}
               onChange={(f) => {
                 setFile(f);

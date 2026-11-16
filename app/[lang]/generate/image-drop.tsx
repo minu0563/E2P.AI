@@ -3,17 +3,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
 import { fmt } from "@/lib/i18n/format";
+import { resizeForUpload } from "@/lib/client-image";
 
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function ImageDrop({
   file,
   maxBytes,
+  maxSide,
   onChange,
   t,
 }: {
   file: File | null;
   maxBytes: number;
+  maxSide: number;
   onChange: (f: File | null) => void;
   t: Dictionary["generator"];
 }) {
@@ -25,12 +28,22 @@ export function ImageDrop({
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
 
-  function pick(f: File | undefined) {
+  const [busy, setBusy] = useState(false);
+
+  /** 고른 이미지를 브라우저에서 줄이고(EXIF 제거) 그 파일을 쓴다. 서버는 검증만 한다 */
+  async function pick(f: File | undefined) {
     if (!f) return;
     if (!TYPES.includes(f.type)) return setError(t.errType);
     if (f.size > maxBytes) return setError(fmt(t.errTooBig, { mb }));
     setError(null);
-    onChange(f);
+    setBusy(true);
+    try {
+      onChange(await resizeForUpload(f, maxSide));
+    } catch {
+      setError(t.errRead);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -57,6 +70,8 @@ export function ImageDrop({
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element -- 로컬 blob 미리보기
           <img src={preview} alt="" className="max-h-80 w-full object-contain" />
+        ) : busy ? (
+          <p className="p-6 text-sm text-muted">{t.preparing}</p>
         ) : (
           <div className="p-6 text-center text-sm text-muted">
             <span className="mx-auto mb-3 block font-mono text-lg text-faint">+</span>

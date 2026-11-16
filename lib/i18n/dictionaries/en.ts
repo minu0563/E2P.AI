@@ -129,6 +129,8 @@ const en: Dictionary = {
     remove: "Change image",
     errTooBig: "Images must be {mb}MB or smaller.",
     errType: "Only JPG, PNG and WEBP images are supported.",
+    errRead: "We couldn't read this image. Please try another file.",
+    preparing: "Preparing image…",
     motion: "Motion",
     tabNatural: "Describe",
     tabFields: "Fields",

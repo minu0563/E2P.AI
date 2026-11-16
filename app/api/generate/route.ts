@@ -1,5 +1,5 @@
 import appConfig from "@/config/app.json";
-import { ImageError, processImage } from "@/lib/image";
+import { ImageError, validateImage } from "@/lib/image";
 import type { Fields } from "@/lib/pipeline/assemble";
 import { DEFAULT_PROFILE, FIELD_KEYS, PACES, getProfile, type Pace } from "@/lib/profile";
 import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
   const file = form.get("image");
   if (!(file instanceof File) || file.size === 0) return bad("이미지를 올려 주세요.");
-  if (file.size > limits.max_upload_bytes) return bad("이미지는 10MB 이하만 가능합니다.");
+  if (file.size > limits.max_upload_bytes) return bad("이미지 파일이 너무 큽니다.");
 
   const profile = getProfile(String(form.get("profile") ?? DEFAULT_PROFILE));
   if (!profile) return bad("지원하지 않는 대상 모델입니다.");
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
   let image;
   try {
-    image = await processImage(Buffer.from(await file.arrayBuffer()), limits.max_image_side);
+    image = await validateImage(new Uint8Array(await file.arrayBuffer()), limits.max_image_side, limits.max_upload_bytes);
   } catch (e) {
     return bad(e instanceof ImageError ? e.message : "이미지를 읽을 수 없습니다.");
   }

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
-import { fmt } from "@/lib/i18n/format";
 import type { FieldKey } from "@/lib/profile";
 
 export type Result =
@@ -30,7 +29,7 @@ export type Result =
     };
 
 /** 큐 진행 상태 */
-export type Progress = { status: "queued"; position: number } | { status: "active"; stage: "analyzing" | "writing" };
+export type Progress = { status: "active"; stage: "analyzing" | "writing" };
 
 const APPEALABLE = ["AGE_UNCERTAIN", "SEXUAL_IMAGE", "SEXUAL_REQUEST", "THIRD_PARTY_CLAIM"];
 
@@ -93,15 +92,7 @@ export function ResultPanel({
         {loading && (
           <div className="flex flex-1 flex-col justify-center gap-2 py-14 font-mono text-sm text-muted">
             <p>
-              {progress?.status === "queued"
-                ? progress.position > 0
-                  ? fmt(t.queued, { n: progress.position })
-                  : t.queuedSoon
-                : progress?.status === "active" && progress.stage === "writing"
-                  ? t.writing
-                  : progress?.status === "active"
-                    ? t.analyzing
-                    : t.sending}
+              {progress?.stage === "writing" ? t.writing : progress?.stage === "analyzing" ? t.analyzing : t.sending}
               <span className="animate-pulse">▍</span>
             </p>
             <p className="text-xs text-faint tabular-nums">{elapsed}s</p>

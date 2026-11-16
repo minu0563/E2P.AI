@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import creditConfig from "@/config/credits.json";
 import type { CreditType, Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { cleanupExpiredLimits } from "@/lib/limits";
 
 type Tx = Prisma.TransactionClient;
 
@@ -129,7 +130,13 @@ export async function grantSignupCredits(userId: string) {
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
   const used = await db.creditEntry.aggregate({
-    where: { kind: "grant", creditType: "promo", createdAt: { gte: monthStart } },
+    // 자동 지급(가입 등)만 예산에 센다. 관리자가 직접 준 크레딧(note "admin: …")은 예산과 별개
+    where: {
+      kind: "grant",
+      creditType: "promo",
+      createdAt: { gte: monthStart },
+      NOT: { note: { startsWith: "admin:" } },
+    },
     _sum: { amount: true },
   });
   if ((used._sum.amount ?? 0) + s.amount > CREDIT_CONFIG.monthly_promo_budget) {
@@ -310,4 +317,5 @@ function sweepAllStale() {
   if (Date.now() - lastSweep < 60_000) return;
   lastSweep = Date.now();
   releaseStaleReservations().catch((e) => console.error("[credits] stale sweep failed", String(e).slice(0, 200)));
+  cleanupExpiredLimits().catch((e) => console.error("[credits] limit cleanup failed", String(e).slice(0, 200)));
 }

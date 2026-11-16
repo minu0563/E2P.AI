@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import appConfig from "@/config/app.json";
 import { OAUTH_COOKIE, createAuthRequest, safeNext } from "@/lib/google";
-import { clientIp, hit } from "@/lib/rate-limit";
+import { clientIp, hit } from "@/lib/limits";
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;

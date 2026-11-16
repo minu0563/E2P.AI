@@ -9,12 +9,5 @@ services:
       - "127.0.0.1:5432:5432" # 이 PC에서만 접속
     volumes:
       - pgdata:/var/lib/postgresql/data
-  redis:
-    image: redis:7
-    # 큐에 잠시 올라가는 이미지가 디스크에 남지 않게 저장 기능을 끈다 (메모리 전용)
-    # BullMQ 권장: 메모리가 차도 키를 임의로 지우지 않음
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "noeviction"]
-    ports:
-      - "127.0.0.1:6379:6379" # 이 PC에서만 접속. 운영 서버에서는 외부 포트를 열지 않고 비밀번호(requirepass)를 건다
 volumes:
   pgdata:

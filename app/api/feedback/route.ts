@@ -1,6 +1,6 @@
 import * as z from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { hit } from "@/lib/rate-limit";
+import { hit } from "@/lib/limits";
 import { forbidden, isSameOrigin } from "@/lib/security";
 
 const Body = z.object({

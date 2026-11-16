@@ -153,3 +153,30 @@ run("차단 크레딧·예약 정리 (DB)", async () => {
     await c.releaseCredits(userId, rid("fresh"));
   });
 });
+
+run("월 프로모션 예산", async () => {
+  const { db } = await import("@/lib/db");
+  const c = await import("@/lib/credits");
+  let adminTarget = "";
+  let newbie = "";
+  beforeAll(async () => {
+    adminTarget = (await db.user.create({ data: { email: `test-budget-a-${Date.now()}@example.test` } })).id;
+    newbie = (await db.user.create({ data: { email: `test-budget-b-${Date.now()}@example.test` } })).id;
+  });
+  afterAll(async () => {
+    await db.creditEntry.deleteMany({ where: { userId: { in: [adminTarget, newbie] } } });
+    await db.user.deleteMany({ where: { id: { in: [adminTarget, newbie] } } });
+  });
+
+  it("관리자가 준 프로모션은 가입 지급 예산을 쓰지 않는다", async () => {
+    await c.grantCredits({
+      userId: adminTarget,
+      amount: c.CREDIT_CONFIG.monthly_promo_budget * 2,
+      creditType: "promo",
+      expiresAt: new Date(Date.now() + 86_400_000),
+      idempotencyKey: `admin-test:${adminTarget}`,
+      note: "admin: test",
+    });
+    expect(await c.grantSignupCredits(newbie)).toBe(true);
+  });
+});

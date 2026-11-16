@@ -63,12 +63,9 @@ export function Generator({
   const [loadedNote, setLoadedNote] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const jobRef = useRef<string | null>(null);
 
-  /** 취소: 서버 작업도 취소(크레딧 반환)하고 기다리기를 멈춘다 */
+  /** 취소: 연결을 끊으면 서버가 남은 처리를 건너뛰고 크레딧을 반환한다 */
   function cancel() {
-    const id = jobRef.current;
-    if (id) fetch(`/api/generate/${id}`, { method: "DELETE" }).catch(() => {});
     abortRef.current?.abort();
   }
   const router = useRouter();
@@ -164,17 +161,15 @@ export function Generator({
     abortRef.current = ac;
     setProgress(null);
     try {
-      // 1) 큐에 등록 → 2) 끝날 때까지 상태 확인
+      // 진행 단계와 결과를 스트림으로 받는다 (실패 응답은 일반 JSON)
       const res = await fetch("/api/generate", { method: "POST", body: form, signal: ac.signal });
-      const queued = (await res.json()) as Result | { ok: true; queued: true; jobId: string };
       let data: Result;
-      if ("queued" in queued) {
-        jobRef.current = queued.jobId;
-        const done = await waitForJob(queued.jobId, ac.signal, setProgress);
+      if (res.headers.get("content-type")?.includes("application/x-ndjson") && res.body) {
+        const done = await readStream(res.body, setProgress);
         if (!done || ("code" in done && done.code === "CANCELLED")) return;
         data = done as Result;
       } else {
-        data = queued;
+        data = (await res.json()) as Result;
       }
       // 서버 메시지 대신 현재 언어의 문구로
       if (!data.ok && te[data.code]) data.message = te[data.code];
@@ -188,7 +183,6 @@ export function Generator({
     } finally {
       setLoading(false);
       setProgress(null);
-      jobRef.current = null;
     }
   }
 
@@ -560,23 +554,29 @@ function Label({ step, children }: { step: number; children: React.ReactNode }) 
   );
 }
 
-/** 작업이 끝날 때까지 1초마다 상태를 확인한다. 취소되면 null */
-async function waitForJob(
-  id: string,
-  signal: AbortSignal,
+/** NDJSON 스트림을 읽어 단계는 표시하고 마지막 결과를 돌려준다 */
+async function readStream(
+  body: ReadableStream<Uint8Array>,
   onProgress: (p: Progress) => void,
 ): Promise<Result | { ok: false; code: "CANCELLED" } | null> {
-  while (!signal.aborted) {
-    await new Promise((r) => setTimeout(r, 1000));
-    if (signal.aborted) return null;
-    const res = await fetch(`/api/generate/${id}`, { signal, cache: "no-store" });
-    if (res.status === 404) throw new Error("job gone");
-    const s = (await res.json()) as
-      | { status: "queued"; position: number }
-      | { status: "active"; stage: "analyzing" | "writing" }
-      | { status: "done"; result: Result };
-    if (s.status === "done") return s.result;
-    onProgress(s);
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  let result: Result | null = null;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line) continue;
+      const msg = JSON.parse(line) as { type: "stage"; stage: "analyzing" | "writing" } | { type: "result"; result: Result };
+      if (msg.type === "stage") onProgress({ status: "active", stage: msg.stage });
+      else result = msg.result;
+    }
   }
-  return null;
+  if (!result) throw new Error("stream ended without result");
+  return result;
 }

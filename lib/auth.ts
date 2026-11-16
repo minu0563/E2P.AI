@@ -49,6 +49,11 @@ export async function startSession(userId: string) {
   });
 }
 
+/** 로그인 쿠키가 있는지만 (DB 조회 없음). 익명 요청을 DB 전에 거르는 용도 — 권한 판단은 getCurrentUser로 */
+export async function hasSessionCookie() {
+  return (await cookies()).has(SESSION_COOKIE);
+}
+
 export async function getCurrentUser() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;

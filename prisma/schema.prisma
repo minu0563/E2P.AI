@@ -117,3 +117,30 @@ model AdminLog {
   @@index([createdAt])
   @@index([targetUserId])
 }
+
+/// 고정 창 속도 제한 카운터 (key = 대상:창번호). 만료된 줄은 정리 작업이 지운다
+model RateLimit {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+/// 진행 중인 생성 (사용자당 한 줄 → 동시 1건). 요청이 끝나면 지우고, 남으면 만료 후 다시 잡을 수 있다
+model ActiveGeneration {
+  userId    String   @id
+  requestId String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+/// 우회 루프 차단: 성적·제3자 사유로 차단된 이미지 해시 (이미지 자체는 저장하지 않는다)
+model BlockedImage {
+  hash      String   @id
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

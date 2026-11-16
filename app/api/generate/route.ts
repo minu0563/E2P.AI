@@ -4,11 +4,11 @@ import type { Fields } from "@/lib/pipeline/assemble";
 import { DEFAULT_PROFILE, FIELD_KEYS, PACES, getProfile, type Pace } from "@/lib/profile";
 import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
 import { randomUUID } from "node:crypto";
-import { getCurrentUser, hasCurrentConsent } from "@/lib/auth";
-import { CREDIT_CONFIG, releaseCredits, reserveCredits } from "@/lib/credits";
+import { getCurrentUser, hasCurrentConsent, hasSessionCookie } from "@/lib/auth";
+import { CREDIT_CONFIG, reserveCredits } from "@/lib/credits";
 import type { HistoryInput } from "@/lib/history";
-import { QUEUE_CONFIG, RATE_CONFIG, claimSlot, dropImage, getQueue, putImage, releaseSlot } from "@/lib/queue";
-import { clientIp, hit } from "@/lib/rate-limit";
+import { runGeneration } from "@/lib/generate";
+import { GENERATION_CONFIG, RATE_CONFIG, activeCount, claimSlot, clientIp, hit, releaseSlot } from "@/lib/limits";
 import { forbidden, isSameOrigin } from "@/lib/security";
 import { isTestAccount, testSafetyShadowAllowed } from "@/lib/test-accounts";
 
@@ -21,17 +21,19 @@ const fail = (code: BlockCode, status: number) =>
   Response.json({ ok: false, code, message: BLOCK_MESSAGES[code] }, { status });
 
 /**
- * 생성 요청 등록. 검증·속도 제한·크레딧 예약 뒤 큐에 넣고 바로 jobId를 돌려준다.
- * 진행 상태·결과는 GET /api/generate/[id], 취소는 DELETE /api/generate/[id].
+ * 생성 요청. 검증·속도 제한·크레딧 예약 뒤 같은 요청 안에서 끝까지 처리하고,
+ * 진행 단계와 결과를 NDJSON 스트림으로 보낸다({type:"stage"} … {type:"result"}).
+ * 큐·워커가 없으므로 Workers에서 그대로 돈다(추론 응답을 기다리는 시간은 CPU 시간이 아니다).
  */
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return forbidden();
-  const ipOk = await hit(`ip:${clientIp(request)}`, RATE_CONFIG.ip_per_minute, 60);
+  // 로그인 쿠키조차 없으면 DB를 건드리기 전에 거절 (익명 폭주가 DB까지 오지 않게)
+  if (!(await hasSessionCookie())) return fail("LOGIN_REQUIRED", 401);
   const user = await getCurrentUser();
-  // 테스트 계정: 크레딧·속도 제한 없음 (TEST_ACCOUNTS)
-  const test = isTestAccount(user?.email);
-  if (!ipOk && !test) return fail("RATE_LIMITED", 429);
   if (!user) return fail("LOGIN_REQUIRED", 401);
+  // 테스트 계정: 크레딧·속도 제한 없음 (TEST_ACCOUNTS)
+  const test = isTestAccount(user.email);
+  if (!test && !(await hit(`ip:${clientIp(request)}`, RATE_CONFIG.ip_per_minute, 60))) return fail("RATE_LIMITED", 429);
   if (!(await hasCurrentConsent(user.id))) return fail("LOGIN_REQUIRED", 401);
   if (!test && !(await hit(`user:${user.id}`, RATE_CONFIG.user_per_minute, 60))) return fail("RATE_LIMITED", 429);
 
@@ -84,15 +86,14 @@ export async function POST(request: Request) {
     return bad(e instanceof ImageError ? e.message : "이미지를 읽을 수 없습니다.");
   }
 
-  const queue = getQueue();
-  if ((await queue.getWaitingCount()) >= QUEUE_CONFIG.max_waiting) return fail("QUEUE_FULL", 503);
+  // 전체 동시 생성 상한 (추론 서비스 분당 한도·비용 보호)
+  if ((await activeCount()) >= GENERATION_CONFIG.max_active_total) return fail("QUEUE_FULL", 503);
 
-  // 사용자당 동시 1건
+  // 사용자당 동시 1건 (DB 유니크 키로 원자적)
   const requestId = randomUUID();
   if (!test && !(await claimSlot(user.id, requestId))) return fail("BUSY", 429);
 
-  // 크레딧 예약 → 워커가 성공 시 확정, 실패·취소 시 반환, 차단은 하루 무료 횟수 뒤 차감
-  // 테스트 계정은 예약하지 않는다 (예약이 없으면 워커의 확정·반환은 아무것도 하지 않음)
+  // 크레딧 예약. 테스트 계정은 예약하지 않는다 (예약이 없으면 확정·반환은 아무것도 하지 않음)
   if (!test) {
     const reserved = await reserveCredits(user.id, requestId, CREDIT_CONFIG.cost.generate);
     if (!reserved.ok) {
@@ -112,28 +113,51 @@ export async function POST(request: Request) {
     pace,
   };
 
-  try {
-    await putImage(requestId, image);
-    await queue.add(
-      "generate",
-      {
-        requestId,
-        userId: user.id,
-        profileId: profile.profile,
-        input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace },
-        imageHash: image.hash,
-        savedInput,
-        // 안전 검사 shadow는 개발 환경의 테스트 계정만 (운영에서는 모두 같은 규칙)
-        ...(test && { test: { safetyShadow: testSafetyShadowAllowed() } }),
-      },
-      { jobId: requestId },
-    );
-  } catch (e) {
-    console.error("[generate] enqueue failed", String(e).slice(0, 300));
-    await dropImage(requestId).catch(() => {});
-    await releaseCredits(user.id, requestId, "error").catch(() => {});
-    await releaseSlot(user.id, requestId).catch(() => {});
-    return fail("SYSTEM_ERROR", 503);
-  }
-  return Response.json({ ok: true, queued: true, jobId: requestId }, { status: 202 });
+  // 사용자가 취소하거나 연결이 끊기면: 남은 추론을 건너뛰고 크레딧 반환
+  let aborted = false;
+  request.signal.addEventListener("abort", () => (aborted = true));
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (msg: object) => {
+        if (aborted) return;
+        try {
+          controller.enqueue(encoder.encode(JSON.stringify(msg) + "\n"));
+        } catch {
+          aborted = true; // 이미 닫힌 연결
+        }
+      };
+      const result = await runGeneration(
+        {
+          requestId,
+          userId: user.id,
+          // 안전 검사 shadow는 개발 환경의 테스트 계정만 (운영에서는 모두 같은 규칙)
+          ...(test && { test: { safetyShadow: testSafetyShadowAllowed() } }),
+          profile,
+          input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace },
+          image,
+          savedInput,
+        },
+        { onStage: (stage) => send({ type: "stage", stage }), isCancelled: () => aborted },
+      );
+      send({ type: "result", result });
+      try {
+        controller.close();
+      } catch {
+        /* 이미 닫힘 */
+      }
+    },
+    cancel() {
+      aborted = true;
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "private, no-store",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }

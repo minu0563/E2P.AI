@@ -2,7 +2,7 @@
   "profile": "minimax-h3-i2v",
   "mode": "i2v",
   "label": "MiniMax H3 · 이미지 → 영상",
-  "guide": "system/guides/h3-i2v.md",
+  "guide": "h3-i2v",
   "safety_module": "i2v",
   "placeholder": "{ 유저가 직접 입력할 내용 }",
   "output_language": "en",

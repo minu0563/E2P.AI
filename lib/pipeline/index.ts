@@ -1,6 +1,4 @@
 import "server-only";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { safetyConfig } from "@/system/config";
 import { getInferenceClient, models, type ChatResult } from "@/lib/inference";
@@ -26,6 +24,7 @@ import {
   type Fields,
   type KeyActionMode,
 } from "./assemble";
+import { GUIDES } from "@/system/guides";
 import { ANALYSIS_SYSTEM, ANALYSIS_USER, REQUEST_SYSTEM, generationSystem, requestUser } from "@/system/prompts";
 
 const config = safetyConfig as SafetyConfig;
@@ -99,15 +98,11 @@ function debugLines(
   return out;
 }
 
-const guideCache = new Map<string, string>();
-async function loadGuide(profile: Profile) {
-  if (!guideCache.has(profile.guide)) {
-    // 경로를 system/guides/ 폴더로 한정해 빌드 추적 범위를 좁힌다
-    const rel = path.relative("system/guides", profile.guide);
-    const raw = await readFile(path.join(process.cwd(), "system", "guides", rel), "utf8");
-    guideCache.set(profile.guide, raw.replace(/<!--[\s\S]*?-->/g, "").trim());
-  }
-  return guideCache.get(profile.guide)!;
+/** 가이드는 빌드에 포함된 문자열 (Workers에는 파일 시스템이 없다) */
+function loadGuide(profile: Profile) {
+  const raw = GUIDES[profile.guide];
+  if (!raw) throw new Error(`unknown guide: ${profile.guide}`);
+  return raw.replace(/<!--[\s\S]*?-->/g, "").trim();
 }
 
 /** 텍스트·메타데이터만 로그 (이미지 원본·시스템 프롬프트 금지). TODO(DB 단계): 테이블로 저장 */
@@ -220,7 +215,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       ? "user"
       : "auto";
 
-  const guide = await loadGuide(profile);
+  const guide = loadGuide(profile);
   const userFields = Object.fromEntries(
     FIELD_KEYS.filter((k) => input.fields[k].trim()).map((k) => [k, input.fields[k].trim()]),
   );

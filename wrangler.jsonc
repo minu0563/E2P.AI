@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // E2P.AI (Cloudflare Workers + OpenNext). 비밀값은 여기 넣지 않는다 → `wrangler secret put` / 로컬은 .dev.vars
+  "name": "e2p-ai",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-01",
+  // nodejs_compat: pg·node:crypto 등. global_fetch_strictly_public: 서버가 사설 IP로 fetch 못 하게 (SSRF 방지)
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai" }],
+  "observability": { "enabled": true },
+  // 민감하지 않은 설정만
+  "vars": {
+    "TERMS_VERSION": "2026-11-12",
+    "INFERENCE_PROVIDER": "ollama",
+    "MODEL": "gemma4:12b"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      // 8단계에서 `wrangler hyperdrive create`로 만든 ID로 교체
+      "id": "00000000000000000000000000000000",
+      // 로컬 미리보기는 Docker Postgres 직접 연결 (docker-compose.yml과 같은 개발용 값)
+      "localConnectionString": "postgresql://prompt_app:prompt_app@localhost:5432/prompt_app"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+# wrangler 로컬 미리보기용 비밀값 (커밋 금지). 운영은 wrangler secret put
+APP_URL="http://localhost:8787"
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+ADMIN_EMAILS=""
+TEST_ACCOUNTS=""
+SAFETY_DEBUG=""
+OLLAMA_URL=""
+OLLAMA_KEEP_ALIVE=""

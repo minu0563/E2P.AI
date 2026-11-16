@@ -10,7 +10,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import creditConfig from "@/config/credits.json";
-import type { CreditType, Prisma } from "@/generated/prisma/client";
+import type { CreditType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { cleanupExpiredLimits } from "@/lib/limits";
 

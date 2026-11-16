@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // cacheComponents(PPR)는 OpenNext/Workers에서 요청 간 프라미스 공유 문제를 일으켜 끈다
   // (한 요청의 캐시가 다른 요청에 섞일 위험). 페이지는 요청마다 렌더링하고, 공개 페이지 정적화는 이후 별도로.
   poweredByHeader: false,
+  // Prisma는 번들하지 않고 그대로 두어 OpenNext가 Workers용(workerd 조건)으로 불러오게 한다 (OpenNext 공식 설정)
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
   async headers() {
     const prod = process.env.NODE_ENV === "production";
     return [

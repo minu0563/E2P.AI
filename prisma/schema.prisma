@@ -1,6 +1,7 @@
+// OpenNext(Cloudflare) 공식 방식: prisma-client-js + output 지정 없음 → OpenNext가 빌드 때 Workers용으로 패치한다
+// (출력 경로를 지정하면 패치되지 않아 Workers에서 WebAssembly 실행 중 컴파일 오류가 난다)
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {

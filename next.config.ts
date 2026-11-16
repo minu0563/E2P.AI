@@ -1,11 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  experimental: {
-    agentFeedback: true,
-  },
-  cacheComponents: true,
+  // cacheComponents(PPR)는 OpenNext/Workers에서 요청 간 프라미스 공유 문제를 일으켜 끈다
+  // (한 요청의 캐시가 다른 요청에 섞일 위험). 페이지는 요청마다 렌더링하고, 공개 페이지 정적화는 이후 별도로.
   poweredByHeader: false,
   async headers() {
     const prod = process.env.NODE_ENV === "production";
@@ -24,7 +21,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {

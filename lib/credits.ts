@@ -1,7 +1,7 @@
 /**
  * 크레딧 원장 (사람이 직접 검토할 코드 — CLAUDE.md 2장, 9장).
  * - 추가만 하는 거래 내역. 잔액은 내역에서 계산.
- * - 예약 → 성공 시 확정 / 실패·취소 시 반환. 사용자별 advisory lock으로 원자적 처리(음수 잔액 금지).
+ * - 예약 → 성공 시 확정 / 실패·취소 시 반환. 사용자 행 잠금(FOR UPDATE)으로 원자적 처리(음수 잔액 금지).
  * - 차단: 하루 block_fee.free_per_day회까지 반환, 그 뒤(센 사유만)는 차감. 이미지 판정 차단·시스템 오류는 항상 반환.
  * - 확정·반환 없이 reservation_ttl_minutes가 지난 예약은 자동 반환.
  * - 멱등성 키로 같은 이벤트·요청의 중복 처리를 막는다.
@@ -59,7 +59,9 @@ async function countedBlocksToday(tx: Tx, userId: string, now = new Date()) {
 
 /** 같은 사용자의 원장 작업을 직렬화 (트랜잭션 종료 시 자동 해제) */
 async function lockUser(tx: Tx, userId: string) {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`credit:${userId}`}))`;
+  // 사용자 행 잠금(트랜잭션 끝에 자동 해제). 세션 상태를 쓰지 않으므로 Hyperdrive(트랜잭션 풀링)에서도 안전하다
+  const rows = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+  if (!rows.length) throw new Error("user not found");
 }
 
 const active = (now: Date) => ({ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] });

@@ -26,8 +26,11 @@ export function getInferenceClient(): InferenceClient {
   return client;
 }
 
+/**
+ * 모델 하나로 이미지 분석·요청 분류·프롬프트 작성을 모두 한다 (로컬 gemma4:12b, 운영 Workers AI Gemma 4 26B A4B).
+ * 세 호출의 컨텍스트 크기가 같아야 Ollama가 모델을 다시 올리지 않는다.
+ */
 export const models = {
-  // thinking 변형(qwen3-vl:8b)은 think:false를 무시해 분석이 20~90초 → instruct 변형 사용(약 3.5초)
-  analysis: () => process.env.ANALYSIS_MODEL ?? "qwen3-vl:8b-instruct",
-  generation: () => process.env.GENERATION_MODEL ?? "gemma4:e4b",
+  main: () => process.env.MODEL ?? "gemma4:12b",
+  numCtx: () => Number(process.env.MODEL_NUM_CTX ?? 16384),
 };

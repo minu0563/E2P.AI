@@ -158,11 +158,12 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const analyzeImage = async () => {
     try {
       const r = await client.chat({
-        model: models.analysis(),
+        model: models.main(),
         system: ANALYSIS_SYSTEM,
         user: ANALYSIS_USER,
         images: [input.image.base64],
         schema: imageAnalysisJsonSchema,
+        contextTokens: models.numCtx(),
         temperature: 0,
         // instruct 변형 기준 출력 약 170토큰. thinking 변형을 쓰면 ANALYSIS_MAX_TOKENS를 2500 이상으로
         maxTokens: Number(process.env.ANALYSIS_MAX_TOKENS ?? 800),
@@ -184,14 +185,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     if (!texts.length) return { request_level: "general", third_party_claim: false }; // 받은 글이 없다
     try {
       const r = await client.chat({
-        model: models.generation(),
+        model: models.main(),
         system: REQUEST_SYSTEM,
         user: requestUser({ request: input.request, fields: input.fields }),
         schema: requestClassJsonSchema,
         temperature: 0,
         maxTokens: 100,
         // 생성 호출과 같은 컨텍스트 크기여야 Ollama가 모델을 다시 올리지 않는다
-        contextTokens: Number(process.env.GENERATION_NUM_CTX ?? 16384),
+        contextTokens: models.numCtx(),
       });
       stages.push(stageLog("request", r));
       return RequestClassSchema.parse(JSON.parse(r.content));
@@ -266,13 +267,15 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const r = await client.chat({
-        model: models.generation(),
+        model: models.main(),
         system: generationSystem(guide),
         user: JSON.stringify(payload),
+        // 같은 모델이 이미지를 직접 보고 쓴다 (분석 결과는 확정 사실·안전 기준으로 함께 준다)
+        images: [input.image.base64],
         schema: blocksJsonSchema,
         temperature: attempt === 0 ? 0.4 : 0.2,
         maxTokens: 1800,
-        contextTokens: Number(process.env.GENERATION_NUM_CTX ?? 16384),
+        contextTokens: models.numCtx(),
       });
       stages.push(stageLog(`generation#${attempt + 1}`, r));
       let blocks: Blocks;

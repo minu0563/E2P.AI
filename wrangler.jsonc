@@ -23,5 +23,25 @@
       // 로컬 미리보기는 Docker Postgres 직접 연결 (docker-compose.yml과 같은 개발용 값)
       "localConnectionString": "postgresql://prompt_app:prompt_app@localhost:5432/prompt_app"
     }
-  ]
+  ],
+  "env": {
+    // 스테이징: 운영과 완전히 분리된 Worker·DB. https://e2p-ai-staging.e2p.workers.dev
+    // env 안의 vars·바인딩은 위(운영)에서 상속되지 않으므로 모두 다시 적는다
+    "staging": {
+      "name": "e2p-ai-staging",
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai-staging" }],
+      "vars": {
+        "TERMS_VERSION": "2026-11-12",
+        "APP_URL": "https://e2p-ai-staging.e2p.workers.dev",
+        "INFERENCE_PROVIDER": "ollama",
+        "MODEL": "gemma4:12b"
+      },
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "0256208906db4b9eb222c68d860fd4bb"
+        }
+      ]
+    }
+  }
 }

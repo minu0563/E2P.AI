@@ -1,0 +1,83 @@
+# 스테이징 자동 배포: cloudflare 브랜치에 push하면 리눅스에서 테스트 → 빌드 → 크기 검사 → 배포
+# 운영 배포는 별도 워크플로(승인 필요)로 나중에 만든다.
+name: Deploy staging
+
+on:
+  push:
+    branches: [cloudflare]
+  workflow_dispatch:
+
+# 기본 권한 최소화 (코드 읽기만)
+permissions:
+  contents: read
+
+# 같은 스테이징에 동시에 배포하지 않는다
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+
+    # 크레딧 원장·제한 통합 테스트용 일회성 DB (이 작업 안에서만 존재)
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      TERMS_VERSION: ci
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # 비공개 저장소(시스템 프롬프트·규칙 엔진)를 system/ 에. 같은 이름의 브랜치를 쓴다
+      - uses: actions/checkout@v4
+        with:
+          repository: minu0563/E2P.AI.SYSTEM
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.SYSTEM_REPO_TOKEN }}
+          path: system
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+
+      - name: Lint · typecheck · test
+        run: |
+          npx eslint .
+          npx tsc --noEmit
+          npx vitest run
+
+      - name: Build (OpenNext)
+        run: npx opennextjs-cloudflare build -e staging
+
+      - name: Bundle size check
+        run: node scripts/check-bundle-size.mjs staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to staging
+        run: npx opennextjs-cloudflare deploy -e staging
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -82,3 +82,5 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # 배포 도구가 설정을 읽으려 로컬 에뮬레이션을 띄울 때만 쓰는 값 (CI 임시 DB). 실제 Worker는 Hyperdrive로 Neon에 연결
+          CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgresql://ci:ci@localhost:5432/ci

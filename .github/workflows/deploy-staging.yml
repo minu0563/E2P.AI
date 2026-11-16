@@ -64,6 +64,7 @@ jobs:
       - name: Lint · typecheck · test
         run: |
           npx eslint .
+          npx next typegen   # PageProps·LayoutProps 등 라우트 타입 생성 (빌드 전 타입 검사용)
           npx tsc --noEmit
           npx vitest run
 

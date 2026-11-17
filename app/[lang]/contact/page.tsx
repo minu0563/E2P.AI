@@ -14,8 +14,8 @@ export default async function ContactPage() {
       title={ko ? "문의" : "Contact"}
       lead={
         ko
-          ? "서비스 이용, 오차단 이의 제기, 신고, 환불, 개인정보 관련 문의는 아래 이메일로 보내 주세요."
-          : "For questions, appeals, reports, refunds or privacy requests, email us at the address below."
+          ? "서비스 이용, 오차단 이의 제기, 신고, 환불, 개인정보, 사진 삭제 요청은 아래 이메일로 보내 주세요."
+          : "For questions, appeals, reports, refunds, privacy or photo removal requests, email us at the address below."
       }
     >
       <a
@@ -33,6 +33,10 @@ export default async function ContactPage() {
             <li>환불: 가입 이메일, 결제일, 환불 사유</li>
             <li>신고: 문제가 되는 내용과 확인한 위치</li>
             <li>계정 삭제·개인정보 요청: 가입한 Google 이메일</li>
+            <li>
+              사진 삭제 요청(본인이 찍힌 사진이 동의 없이 올라간 경우, 회원이 아니어도 됨): 연락받을 이메일, 사진에 대한 설명 또는 해당
+              사진. 보내 주신 사진은 같은 이미지를 찾는 데만 쓰고 바로 폐기합니다.
+            </li>
           </>
         ) : (
           <>
@@ -40,6 +44,11 @@ export default async function ContactPage() {
             <li>Refunds: your account email, payment date and reason</li>
             <li>Reports: what the problem is and where you saw it</li>
             <li>Account deletion or privacy requests: the Google email you signed up with</li>
+            <li>
+              Photo removal (an image of you uploaded without your consent; you do not need to be a user): your email,
+              and a description or copy of the photo. Any photo you send is used only to find the matching image and
+              is then deleted.
+            </li>
           </>
         )}
       </ul>

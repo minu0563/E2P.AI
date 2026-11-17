@@ -17,7 +17,7 @@ export const LEGAL = {
   mailOrderNumber: "[통신판매업 신고번호]",
   address: "[사업장 주소]",
   privacyOfficer: "[개인정보 보호책임자]",
-  effective: "2026-11-13",
+  effective: "2026-11-17",
 };
 
 /** 라벨은 사전(dict.nav / dict.footer)의 키 */

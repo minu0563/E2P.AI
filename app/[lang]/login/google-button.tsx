@@ -4,7 +4,10 @@ import { useState } from "react";
 import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
 
 export function GoogleButton({ next, t }: { next?: string; t: Dictionary["login"] }) {
-  const [agree, setAgree] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  // 이미지 보관 동의는 따로 체크한다 (무엇을 얼마나 보관하는지 분명히 알리고 받기). 둘 다 같은 약관 버전으로 기록된다
+  const [agreeImages, setAgreeImages] = useState(false);
+  const agree = agreeTerms && agreeImages;
   const href = `/auth/google?agree=1${next ? `&next=${encodeURIComponent(next)}` : ""}`;
   const link = (href: string, label: string) => (
     <a href={href} target="_blank" className="text-text underline decoration-faint underline-offset-2 hover:decoration-accent">
@@ -16,8 +19,8 @@ export function GoogleButton({ next, t }: { next?: string; t: Dictionary["login"
       <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-relaxed text-muted">
         <input
           type="checkbox"
-          checked={agree}
-          onChange={(e) => setAgree(e.target.checked)}
+          checked={agreeTerms}
+          onChange={(e) => setAgreeTerms(e.target.checked)}
           className="mt-[3px] size-4 shrink-0 accent-accent"
         />
         <span>
@@ -26,6 +29,26 @@ export function GoogleButton({ next, t }: { next?: string; t: Dictionary["login"
           {t.agreeTail}
         </span>
       </label>
+
+      <div className="text-[13px] leading-relaxed text-muted">
+        <label className="flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={agreeImages}
+            onChange={(e) => setAgreeImages(e.target.checked)}
+            className="mt-[3px] size-4 shrink-0 accent-accent"
+          />
+          <span>{t.imageAgree}</span>
+        </label>
+        <details className="mt-1 ml-[26px]">
+          <summary className="cursor-pointer text-xs text-faint hover:text-text">{t.imageMore}</summary>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs">
+            {t.imageDetails.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </details>
+      </div>
 
       {/* Google 표준 버튼 모양: 흰 바탕 + 로고 */}
       <a

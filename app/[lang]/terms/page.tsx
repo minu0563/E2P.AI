@@ -77,27 +77,50 @@ function Ko() {
         <li>서비스의 소프트웨어, 디자인, 안내 문서에 대한 권리는 회사에 있습니다.</li>
       </ul>
 
-      <h2>제9조 (요청 처리 제한과 이용 제한)</h2>
+      <h2>제9조 (입력물의 보관)</h2>
+      <ul>
+        <li>
+          회사는 서비스 제공, 품질 점검, 문의 대응, 부정 이용 방지 및 법령에 따른 대응을 위해 이용자가 올린 이미지를{" "}
+          <Link href="/privacy">개인정보처리방침</Link>에 정한 기간 동안 암호화해 보관하며, 기간이 지나면 삭제합니다.
+        </li>
+        <li>회사는 보관 중인 이미지를 위 목적 외에 사용하지 않으며, AI 모델 학습에 사용하지 않습니다.</li>
+      </ul>
+
+      <h2>제10조 (불법 콘텐츠와 수사 협조)</h2>
+      <ul>
+        <li>
+          이용자는 본인이 아니거나 사용 동의를 받지 않은 인물의 이미지, 아동·청소년이 등장하는 성적 이미지, 불법 촬영물 등 법령을
+          위반하는 이미지를 올려서는 안 됩니다.
+        </li>
+        <li>회사는 법령 위반이 의심되는 이미지와 관련 기록을 보관하고, 관계 법령에 따라 수사기관에 신고하거나 제공할 수 있습니다.</li>
+        <li>회사는 이 조를 위반한 이용자의 이용을 사전 통지 없이 제한하거나 계약을 해지할 수 있습니다.</li>
+        <li>
+          이용자가 동의 없이 타인의 이미지를 올려 발생한 분쟁과 손해는 그 이용자에게 책임이 있으며, 회사에 손해가 발생한 경우 이용자는
+          이를 배상해야 합니다.
+        </li>
+      </ul>
+
+      <h2>제11조 (요청 처리 제한과 이용 제한)</h2>
       <ul>
         <li>서비스는 정책에 맞지 않는 요청을 거절하거나 일부 표현을 중립적으로 조정할 수 있습니다.</li>
         <li>위반이 반복되면 경고, 일시 제한, 이용 정지 순으로 조치할 수 있으며, 중대한 위반은 바로 정지할 수 있습니다.</li>
         <li>이용자는 조치에 이의가 있으면 <Link href="/contact">문의</Link>로 이의를 제기할 수 있습니다.</li>
       </ul>
 
-      <h2>제10조 (서비스 변경·중단)</h2>
+      <h2>제12조 (서비스 변경·중단)</h2>
       <p>
         회사는 운영·기술상 필요에 따라 서비스 내용, 사용 모델, 인프라 공급업체를 바꿀 수 있습니다. 서비스를 중단할 때는
         미리 공지하고, 남은 유료 크레딧은 환불 정책에 따라 처리합니다.
       </p>
 
-      <h2>제11조 (책임의 한계)</h2>
+      <h2>제13조 (책임의 한계)</h2>
       <ul>
         <li>프롬프트는 참고용 텍스트이며, 외부 도구에서 만든 결과물의 품질이나 결과를 보장하지 않습니다.</li>
         <li>이용자가 프롬프트로 만든 결과물과 그 사용에 대한 책임은 이용자에게 있습니다.</li>
         <li>회사의 고의 또는 중대한 과실로 인한 손해는 관련 법령에 따라 배상합니다.</li>
       </ul>
 
-      <h2>제12조 (분쟁 해결)</h2>
+      <h2>제14조 (분쟁 해결)</h2>
       <p>이 약관은 대한민국 법을 따르며, 분쟁은 민사소송법상 관할 법원에서 해결합니다.</p>
 
       <h2>부칙</h2>
@@ -164,27 +187,51 @@ function En() {
         <li>We own the Service’s software, design and documentation.</li>
       </ul>
 
-      <h2>8. Request handling and enforcement</h2>
+      <h2>8. Storage of inputs</h2>
+      <ul>
+        <li>
+          We store the images you upload, encrypted, for the periods set out in the{" "}
+          <Link href="/privacy">Privacy Policy</Link> to provide the Service, check quality, handle support requests,
+          prevent abuse and comply with the law, and delete them when those periods end.
+        </li>
+        <li>We do not use stored images for any other purpose, and never to train AI models.</li>
+      </ul>
+
+      <h2>9. Illegal content and cooperation with authorities</h2>
+      <ul>
+        <li>
+          You must not upload images of people other than yourself who have not consented, sexual images involving
+          minors, non-consensual intimate images or any other unlawful images.
+        </li>
+        <li>We may keep images and records suspected of breaking the law and report or provide them to the authorities as the law allows.</li>
+        <li>We may restrict or close accounts that break this section without prior notice.</li>
+        <li>
+          You are responsible for disputes and damages caused by uploading images of others without their consent,
+          and must compensate us for any resulting loss to the extent the law allows.
+        </li>
+      </ul>
+
+      <h2>10. Request handling and enforcement</h2>
       <p>
         We may decline requests that do not meet our policy or neutralize parts of them. Repeated violations may lead
         to a warning, a temporary restriction and then suspension; serious violations may lead to immediate
         suspension. You can appeal via the <Link href="/contact">Contact</Link> page.
       </p>
 
-      <h2>9. Changes to the Service</h2>
+      <h2>11. Changes to the Service</h2>
       <p>
         We may change features, models or infrastructure providers. If we discontinue the Service, we will give notice
         and handle remaining paid credits under the Refund Policy.
       </p>
 
-      <h2>10. Disclaimers and liability</h2>
+      <h2>12. Disclaimers and liability</h2>
       <ul>
         <li>Prompts are provided as-is for reference. We do not guarantee results produced in third-party tools.</li>
         <li>You are responsible for content you create with the prompts and how you use it.</li>
         <li>Nothing in these terms limits liability that cannot be limited under applicable law.</li>
       </ul>
 
-      <h2>11. Governing law</h2>
+      <h2>13. Governing law</h2>
       <p>These terms are governed by the laws of the Republic of Korea. Mandatory consumer protections of your country of residence still apply.</p>
 
       <p className="mt-8 text-xs">If the Korean and English versions differ, the Korean version prevails.</p>

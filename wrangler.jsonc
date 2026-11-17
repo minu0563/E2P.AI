@@ -13,7 +13,7 @@
   "ai": { "binding": "AI" },
   // 민감하지 않은 설정만
   "vars": {
-    "TERMS_VERSION": "2026-11-12",
+    "TERMS_VERSION": "2026-11-17",
     "INFERENCE_PROVIDER": "ollama",
     "MODEL": "gemma4:12b"
   },
@@ -33,7 +33,7 @@
       "name": "e2p-ai-staging",
       "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai-staging" }],
       "vars": {
-        "TERMS_VERSION": "2026-11-12",
+        "TERMS_VERSION": "2026-11-17",
         "APP_URL": "https://e2p-ai-staging.e2p.workers.dev",
         "INFERENCE_PROVIDER": "workers-ai",
         "MODEL": "@cf/google/gemma-4-26b-a4b-it"

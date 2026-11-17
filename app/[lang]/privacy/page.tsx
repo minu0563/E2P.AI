@@ -46,7 +46,7 @@ function Ko() {
         </li>
       </ul>
       <p>
-        보관된 이미지는 권한을 받은 운영자만 추가 인증을 거쳐 볼 수 있으며, 모든 열람과 내려받기는 기록됩니다. 같은 이미지로 반복된 정책
+        보관된 이미지는 권한을 받은 운영자만 제한된 시간의 열람 세션을 시작해 볼 수 있으며, 모든 열람과 내려받기는 기록됩니다. 같은 이미지로 반복된 정책
         우회 시도를 막기 위해 이미지에서 계산한 해시값(원본을 복원할 수 없는 값)을 최대 24시간 보관할 수 있습니다. 보관된 이미지는 AI 모델
         학습에 사용하지 않습니다.
       </p>
@@ -101,7 +101,7 @@ function Ko() {
         <li>개인정보 접근 권한을 최소한의 인원으로 제한하고 접근 기록을 남깁니다.</li>
         <li>안전 판정 세부값 등 내부 정보는 운영 목적 외에 사용하지 않습니다.</li>
         <li>보관 이미지는 저장소 암호화에 더해 서비스 전용 키로 한 번 더 암호화하며, 키는 별도 비밀 저장소에만 둡니다.</li>
-        <li>이미지 열람은 운영자 추가 인증 뒤 제한된 시간 동안만 가능하며, 열람·내려받기 기록을 남깁니다.</li>
+        <li>이미지 열람은 권한을 받은 운영자가 열람 세션을 시작한 뒤 제한된 시간 동안만 가능하며, 열람·내려받기 기록을 남깁니다.</li>
       </ul>
 
       <h2>8. 쿠키</h2>
@@ -164,7 +164,7 @@ function En() {
         </li>
       </ul>
       <p>
-        Only authorized staff can view stored images, after additional authentication, and every view and download
+        Only authorized staff can view stored images, in a time-limited viewing session, and every view and download
         is logged. To stop repeated attempts to bypass our policy with the same image, we may keep a one-way hash of
         an image (which cannot be turned back into the image) for up to 24 hours. Stored images are never used to
         train AI models.
@@ -216,7 +216,7 @@ function En() {
       <p>
         Session tokens are stored only as hashes, traffic is encrypted with HTTPS, and access to personal data is
         limited and logged. Stored images are encrypted a second time with a service key kept in a separate secret
-        store, and can be viewed only for a limited time after additional staff authentication.
+        store, and can be viewed by authorized staff only in a time-limited viewing session.
       </p>
 
       <h2>7. Cookies</h2>

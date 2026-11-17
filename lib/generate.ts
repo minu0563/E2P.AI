@@ -1,10 +1,11 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { addUsage, emptyUsage, recordUsage, type Usage } from "@/lib/ai-budget";
 import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, settleBlocked } from "@/lib/credits";
 import { db } from "@/lib/db";
 import type { HistoryInput } from "@/lib/history";
 import { releaseSlot } from "@/lib/limits";
-import { runPipeline, type PipelineInput, type PipelineResult } from "@/lib/pipeline";
+import { runPipeline, type Judgment, type PipelineInput, type PipelineResult } from "@/lib/pipeline";
 import type { Profile } from "@/lib/profile";
 import { BLOCK_MESSAGES } from "@/lib/safety/messages";
 
@@ -19,7 +20,7 @@ export type GenerationJob = {
   /** 테스트 계정: 크레딧 예약 없음, safetyShadow면 안전 검사 shadow(개발 환경만) */
   test?: { safetyShadow: boolean };
   profile: Profile;
-  input: Omit<PipelineInput, "image" | "profile" | "requestId" | "onStage" | "isCancelled" | "safetyMode">;
+  input: Omit<PipelineInput, "image" | "profile" | "requestId" | "onStage" | "isCancelled" | "safetyMode" | "onUsage" | "onJudgment">;
   image: PipelineInput["image"];
   savedInput: HistoryInput;
 };
@@ -34,8 +35,10 @@ async function writeLog(
   blockCode: string | null,
   creditCost: number,
   usage: Usage,
+  judgment: Judgment | null,
   prompt?: string,
 ) {
+  const img = judgment?.image;
   await db.generationLog
     .create({
       data: {
@@ -54,6 +57,28 @@ async function writeLog(
         inputTokens: usage.inputTokens,
         outputTokens: usage.outputTokens,
         costMicroUsd: usage.costMicroUsd,
+        imageHash: judgment?.imageHash ?? j.image.hash,
+        ...(img && {
+          imageType: img.image_type,
+          personCount: img.person_count,
+          estimatedAge: img.estimated_age,
+          ageAssessment: img.age_assessment,
+          minorCues: img.minor_cues,
+          sexualContent: img.sexual_content,
+        }),
+        ...(judgment?.request && {
+          requestLevel: judgment.request.request_level,
+          thirdPartyClaim: judgment.request.third_party_claim,
+        }),
+        ...(judgment && {
+          judgment: {
+            subject: img?.subject ?? null,
+            scene: img?.scene ?? null,
+            personCentric: img?.person_centric ?? null,
+            keywords: judgment.keywords,
+            rule: judgment.rule,
+          } as Prisma.InputJsonValue,
+        }),
       },
     })
     .catch((e) => console.error("[log] write failed", String(e).slice(0, 200)));
@@ -65,9 +90,10 @@ export async function runGeneration(
 ): Promise<GenerationResult> {
   const cost = CREDIT_CONFIG.cost.generate;
   const usage = emptyUsage();
+  let judgment: Judgment | null = null;
   const cancelled = async (): Promise<GenerationResult> => {
     await releaseCredits(j.userId, j.requestId, "cancel");
-    await writeLog(j, "cancel", null, 0, usage);
+    await writeLog(j, "cancel", null, 0, usage, judgment);
     return { ok: false, code: "CANCELLED", message: "cancelled" };
   };
   try {
@@ -79,6 +105,7 @@ export async function runGeneration(
       safetyMode: j.test?.safetyShadow ? "shadow" : undefined,
       onStage: opts.onStage,
       onUsage: (r) => addUsage(usage, r),
+      onJudgment: (x) => (judgment = x),
       isCancelled: async () => opts.isCancelled(),
     });
     if (opts.isCancelled()) return await cancelled();
@@ -86,18 +113,18 @@ export async function runGeneration(
     let creditNotice: "blockFee" | "blockWarn" | null = null;
     if (result.ok) {
       await confirmCredits(j.userId, j.requestId);
-      await writeLog(j, "ok", null, j.test ? 0 : cost, usage, result.prompt);
+      await writeLog(j, "ok", null, j.test ? 0 : cost, usage, judgment, result.prompt);
     } else {
       const s = await settleBlocked(j.userId, j.requestId, result.code);
       creditNotice = s.blockFee ? "blockFee" : s.blockWarn ? "blockWarn" : null;
-      await writeLog(j, "block", result.code, s.blockFee ? cost : 0, usage);
+      await writeLog(j, "block", result.code, s.blockFee ? cost : 0, usage, judgment);
     }
     const { total } = await getBalance(j.userId);
     return { ...result, balance: total, creditNotice };
   } catch (e) {
     console.error("[generate] unexpected", String(e).slice(0, 300));
     await releaseCredits(j.userId, j.requestId, "error").catch(() => {});
-    await writeLog(j, "error", "SYSTEM_ERROR", 0, usage);
+    await writeLog(j, "error", "SYSTEM_ERROR", 0, usage, judgment);
     return { ok: false, requestId: j.requestId, code: "SYSTEM_ERROR", message: BLOCK_MESSAGES.SYSTEM_ERROR };
   } finally {
     // 결과와 관계없이 쓴 만큼 예산에 더한다 (차단·오류·취소도 AI 비용은 나갔다)

@@ -9,9 +9,10 @@ import {
   imageAnalysisJsonSchema,
   requestClassJsonSchema,
   type Analysis,
+  type ImageAnalysis,
   type RequestClass,
 } from "@/system/safety/analysis-schema";
-import { decide, precheck, scanTexts, type SafetyConfig } from "@/system/safety/engine";
+import { decide, precheck, scanTexts, type Decision, type SafetyConfig } from "@/system/safety/engine";
 import { markBlocked, wasBlocked } from "@/system/safety/history";
 import { BLOCK_MESSAGES, NEUTRALIZED_NOTICE, type BlockCode } from "@/lib/safety/messages";
 import {
@@ -49,6 +50,26 @@ export type PipelineInput = {
   isCancelled?: () => Promise<boolean>;
   /** AI 호출이 끝날 때마다 (사용량·비용 집계용) */
   onUsage?: (r: ChatResult) => void;
+  /** 판정값 (관리자 기록용). 결과(사용자 응답)에는 넣지 않는다 — 라벨 노출은 우회에 악용될 수 있음 */
+  onJudgment?: (j: Judgment) => void;
+};
+
+/** 생성 한 건의 AI 판정값. 키워드만으로 막히면 image·request가 없다 */
+export type Judgment = {
+  imageHash: string;
+  image: ImageAnalysis | null;
+  request: RequestClass | null;
+  /** 걸린 키워드 (분류별) */
+  keywords: Record<string, string[]>;
+  /** 규칙 엔진 결과와 플래그 (연령 낮춤, 애매 연령 허용, 이미지 성적+요청 등) */
+  rule: {
+    action: string;
+    code?: string;
+    wouldBe?: { action: string; code?: string };
+    flags: Record<string, unknown>;
+    /** 규칙 엔진 뒤에 막힌 경우의 최종 사유 (출력 검사·생성 실패·취소) */
+    finalCode?: string;
+  } | null;
 };
 
 export type PipelineResult =
@@ -133,9 +154,34 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   };
 
   let analysis: Analysis | null = null;
+  let imageResult: ImageAnalysis | null = null;
+  let requestResult: RequestClass | null = null;
+  let decision: Decision | null = null;
   const scan = scanTexts([input.request, ...FIELD_KEYS.map((k) => input.fields[k])]);
 
+  // 판정값은 한 번만 알린다 (차단·성공 어느 쪽이든)
+  let judged = false;
+  const emitJudgment = (blockCode?: BlockCode) => {
+    if (judged || !input.onJudgment) return;
+    judged = true;
+    const { scan: _scan, analysis: _analysis, ...flags } = decision?.internal ?? {};
+    void _scan;
+    void _analysis;
+    input.onJudgment({
+      imageHash: input.image.hash,
+      image: imageResult,
+      request: requestResult,
+      keywords: Object.fromEntries(Object.entries(scan).filter(([, v]) => v.length)),
+      rule: decision
+        ? { action: decision.action, code: decision.code, wouldBe: decision.wouldBe, flags, ...(blockCode && { finalCode: blockCode }) }
+        : blockCode
+          ? { action: "block", code: blockCode, flags: {} }
+          : null,
+    });
+  };
+
   const fail = (code: BlockCode, extra: Record<string, unknown> = {}): PipelineResult => {
+    emitJudgment(code);
     if (code === "SEXUAL_REQUEST" || code === "THIRD_PARTY_CLAIM") {
       markBlocked(input.image.hash).catch((e) => console.error("[pipeline] markBlocked failed", String(e).slice(0, 200)));
     }
@@ -210,11 +256,13 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     }
   };
   const [img, req] = await Promise.all([analyzeImage(), classifyRequest()]);
+  imageResult = img;
+  requestResult = req;
   analysis = img && req ? { ...img, ...req } : null;
 
   // [4b] 규칙 엔진
   const cfg: SafetyConfig = input.safetyMode === "shadow" ? { ...config, mode: "shadow" } : config;
-  const decision = decide(analysis, scan, cfg, { placeholder: input.placeholder });
+  decision = decide(analysis, scan, cfg, { placeholder: input.placeholder });
   if (decision.action === "block") return fail(decision.code!, { decision: decision.internal });
   const neutralize = decision.action === "neutralize";
   const a = analysis!;
@@ -304,6 +352,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       }
 
       const totalMs = Date.now() - t0;
+      emitJudgment();
       // [7] 로그
       log({
         requestId,

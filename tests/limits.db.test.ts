@@ -129,4 +129,18 @@ run("DB 제한·요청 내 생성", async () => {
     expect(r).toMatchObject({ ok: false, code: "SEXUAL_REQUEST" });
     expect(await bal()).toBe(start0);
   });
+
+  it("판정값은 기록에만 저장되고 응답에는 없다", async () => {
+    const id = await start();
+    const img = { image_type: "photo", person_count: 1, person_centric: true, estimated_age: 24, minor_cues: ["school_uniform"], age_assessment: "ambiguous", sexual_content: "none", subject: "a person", scene: "classroom" };
+    pipeline.runPipeline.mockImplementationOnce(async (i: { requestId: string; onJudgment?: (j: unknown) => void }) => {
+      i.onJudgment?.({ imageHash: "h-judg", image: img, request: { request_level: "general", third_party_claim: false }, keywords: {}, rule: { action: "block", code: "AGE_UNCERTAIN", flags: { ageDowngraded: true } } });
+      return { ok: false, requestId: i.requestId, code: "AGE_UNCERTAIN", message: "x" };
+    });
+    const r = await runGeneration(job(id), { isCancelled: () => false });
+    expect(JSON.stringify(r)).not.toContain("ambiguous");
+    const log = await db.generationLog.findUnique({ where: { requestId: id } });
+    expect(log).toMatchObject({ imageHash: "h-judg", imageType: "photo", estimatedAge: 24, ageAssessment: "ambiguous", minorCues: ["school_uniform"], requestLevel: "general", thirdPartyClaim: false, falsePositive: false });
+    expect(log!.judgment).toMatchObject({ scene: "classroom", rule: { code: "AGE_UNCERTAIN", flags: { ageDowngraded: true } } });
+  });
 });

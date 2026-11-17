@@ -106,10 +106,29 @@ model GenerationLog {
   inputTokens  Int?
   outputTokens Int?
   costMicroUsd Int?
+  /// AI 판정값 (관리자 전용, 사용자에게 보내지 않는다). 키워드만으로 막히면 이미지 칸은 비어 있다
+  imageHash       String?
+  imageType       String?
+  personCount     Int?
+  estimatedAge    Int?
+  ageAssessment   String?
+  minorCues       String[] @default([])
+  sexualContent   String?
+  requestLevel    String?
+  thirdPartyClaim Boolean?
+  /// 나머지 판정 정보: 이미지 설명(subject·scene), 걸린 키워드, 규칙 엔진 플래그, shadow 판정
+  judgment        Json?
+  /// 관리자 오탐 표시 (프롬프트 보정·평가 세트용)
+  falsePositive     Boolean   @default(false)
+  falsePositiveNote String?
+  reviewedAt        DateTime?
+  reviewedBy        String?
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([ageAssessment, createdAt])
+  @@index([imageHash])
 }
 
 /// 관리자 작업 기록 (누가 언제 무엇을). 추가만 한다

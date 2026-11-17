@@ -26,7 +26,7 @@ run("AI 예산", async () => {
   });
 
   it("호출이 없으면 기록하지 않고, 있으면 원자적으로 더한다", async () => {
-    await B.recordUsage(usage(0), day1);
+    await B.recordUsage({ ...usage(0), calls: 0 }, day1);
     expect(await db.aiUsage.findUnique({ where: { day: "2099-03-10" } })).toBeNull();
     await Promise.all([B.recordUsage(usage(100), day1), B.recordUsage(usage(200), day1)]);
     const row = await db.aiUsage.findUnique({ where: { day: "2099-03-10" } });

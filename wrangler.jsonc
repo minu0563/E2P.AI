@@ -39,6 +39,8 @@
         "MODEL": "@cf/google/gemma-4-26b-a4b-it"
       },
       "ai": { "binding": "AI" },
+      // 업로드 이미지 암호화 보관 (비공개 버킷, 수명 규칙: recent/ 3일, blocked/ 30일, quarantine/ 30일). 키는 secret IMAGE_KEY
+      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "e2p-images-staging" }],
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",

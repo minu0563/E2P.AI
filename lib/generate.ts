@@ -1,6 +1,8 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { addUsage, emptyUsage, recordUsage, type Usage } from "@/lib/ai-budget";
+import { decideTier, expiresAt, type ImageTier } from "@/lib/image-retention";
+import { putImage, runAfterResponse } from "@/platform/image-store";
 import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, settleBlocked } from "@/lib/credits";
 import { db } from "@/lib/db";
 import type { HistoryInput } from "@/lib/history";
@@ -39,7 +41,8 @@ async function writeLog(
   prompt?: string,
 ) {
   const img = judgment?.image;
-  await db.generationLog
+  const tier = decideTier(outcome, blockCode, judgment);
+  const saved = await db.generationLog
     .create({
       data: {
         requestId: j.requestId,
@@ -58,6 +61,8 @@ async function writeLog(
         outputTokens: usage.outputTokens,
         costMicroUsd: usage.costMicroUsd,
         imageHash: judgment?.imageHash ?? j.image.hash,
+        imageTier: tier,
+        imageExpiresAt: tier ? expiresAt(tier) : null,
         ...(img && {
           imageType: img.image_type,
           personCount: img.person_count,
@@ -81,7 +86,27 @@ async function writeLog(
         }),
       },
     })
-    .catch((e) => console.error("[log] write failed", String(e).slice(0, 200)));
+    .then(() => true)
+    .catch((e) => {
+      console.error("[log] write failed", String(e).slice(0, 200));
+      return false;
+    });
+  // 기록이 있어야 관리자 화면에서 찾을 수 있으므로, 기록이 저장된 경우에만 이미지를 보관한다
+  if (tier && saved) storeImageLater(j, tier);
+}
+
+/** 응답을 늦추지 않게 뒤에서 암호화 저장. 실패해도 생성 결과에는 영향 없음 (이미지 내용은 로그에 남기지 않는다) */
+function storeImageLater(j: GenerationJob, tier: ImageTier) {
+  const task = (async () => {
+    try {
+      const ok = await putImage(tier, j.requestId, Buffer.from(j.image.base64, "base64"));
+      if (ok) await db.generationLog.update({ where: { requestId: j.requestId }, data: { imageStoredAt: new Date() } });
+      else console.warn("[image] store unavailable (R2 binding or IMAGE_KEY missing)");
+    } catch (e) {
+      console.error("[image] store failed", String(e).slice(0, 200));
+    }
+  })();
+  runAfterResponse(task);
 }
 
 export async function runGeneration(

@@ -8,7 +8,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 export type WorkerRequest = {
   /** 요청마다 다른 객체 (요청 단위 캐시의 키로 쓴다) */
   key: object;
-  env: { HYPERDRIVE?: { connectionString: string }; AI?: unknown } & Record<string, unknown>;
+  env: { HYPERDRIVE?: { connectionString: string }; AI?: unknown; IMAGES?: unknown } & Record<string, unknown>;
   waitUntil: (p: Promise<unknown>) => void;
 };
 

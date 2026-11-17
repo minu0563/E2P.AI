@@ -1,0 +1,6 @@
+{
+  "store_enabled": true,
+  "quarantine_enabled": false,
+  "retention_days": { "recent": 3, "blocked": 30, "quarantine": 30 },
+  "_comment": "업로드 이미지 보관 (약관 2026-11-17). store_enabled=false면 아무것도 저장하지 않는다. quarantine_enabled: 법령 위반 의심(미성년 의심+성적 신호, 성적 이미지 등) 이미지를 격리 보관할지. 기본 false = 저장하지 않음(해시·판정값만). 변호사 확인 뒤에만 true. retention_days는 만료 표시용이고 실제 삭제는 R2 수명 규칙(recent/ 3일, blocked/ 30일, quarantine/ 30일)이 한다 — 바꾸면 R2 규칙도 같이 바꿀 것. hold/(수사기관 보존 요청)는 자동 삭제 없음."
+}

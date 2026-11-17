@@ -80,7 +80,8 @@ jobs:
       - name: Deploy to staging
         # opennextjs-cloudflare deploy는 캐시 업로드용으로 원격 연결(AI 바인딩)을 여는데, 스테이징이 Access로 잠겨 있어 막힌다.
         # 증분 캐시를 쓰지 않으므로 빌드 결과를 wrangler로 바로 올린다 (서비스 토큰을 CI에 두지 않음)
-        run: npx wrangler deploy -e staging
+        # --config를 주면 wrangler가 opennextjs-cloudflare deploy로 넘기지 않는다
+        run: npx wrangler deploy --config wrangler.jsonc -e staging
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -100,6 +100,12 @@ model GenerationLog {
   prompt      String?
   /// 당시 입력값: 모드, 항목별 값, 진행 속도, 길이, 비율, 빈칸 모드 (이미지는 저장하지 않음)
   input       Json?
+  /// AI 사용량: 모델, 호출 수, 입력·출력 토큰, 추정 비용(백만분의 1 USD)
+  model        String?
+  aiCalls      Int?
+  inputTokens  Int?
+  outputTokens Int?
+  costMicroUsd Int?
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -144,4 +150,15 @@ model BlockedImage {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+/// 하루(UTC) AI 사용량 합계. 예산 상한(config/ai.json budget) 판정에 쓴다
+model AiUsage {
+  day          String   @id /// "2026-11-17" (UTC, Cloudflare 무료 한도 초기화 기준과 같음)
+  calls        Int      @default(0)
+  generations  Int      @default(0)
+  inputTokens  BigInt   @default(0)
+  outputTokens BigInt   @default(0)
+  costMicroUsd BigInt   @default(0)
+  updatedAt    DateTime @updatedAt
 }

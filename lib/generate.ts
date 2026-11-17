@@ -1,4 +1,5 @@
 import "server-only";
+import { addUsage, emptyUsage, recordUsage, type Usage } from "@/lib/ai-budget";
 import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, settleBlocked } from "@/lib/credits";
 import { db } from "@/lib/db";
 import type { HistoryInput } from "@/lib/history";
@@ -32,6 +33,7 @@ async function writeLog(
   outcome: "ok" | "block" | "error" | "cancel",
   blockCode: string | null,
   creditCost: number,
+  usage: Usage,
   prompt?: string,
 ) {
   await db.generationLog
@@ -47,6 +49,11 @@ async function writeLog(
         creditCost,
         prompt: prompt ?? null,
         input: j.savedInput,
+        model: usage.model,
+        aiCalls: usage.calls,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        costMicroUsd: usage.costMicroUsd,
       },
     })
     .catch((e) => console.error("[log] write failed", String(e).slice(0, 200)));
@@ -57,9 +64,10 @@ export async function runGeneration(
   opts: { onStage?: (s: "analyzing" | "writing") => void; isCancelled: () => boolean },
 ): Promise<GenerationResult> {
   const cost = CREDIT_CONFIG.cost.generate;
+  const usage = emptyUsage();
   const cancelled = async (): Promise<GenerationResult> => {
     await releaseCredits(j.userId, j.requestId, "cancel");
-    await writeLog(j, "cancel", null, 0);
+    await writeLog(j, "cancel", null, 0, usage);
     return { ok: false, code: "CANCELLED", message: "cancelled" };
   };
   try {
@@ -70,6 +78,7 @@ export async function runGeneration(
       image: j.image,
       safetyMode: j.test?.safetyShadow ? "shadow" : undefined,
       onStage: opts.onStage,
+      onUsage: (r) => addUsage(usage, r),
       isCancelled: async () => opts.isCancelled(),
     });
     if (opts.isCancelled()) return await cancelled();
@@ -77,20 +86,22 @@ export async function runGeneration(
     let creditNotice: "blockFee" | "blockWarn" | null = null;
     if (result.ok) {
       await confirmCredits(j.userId, j.requestId);
-      await writeLog(j, "ok", null, j.test ? 0 : cost, result.prompt);
+      await writeLog(j, "ok", null, j.test ? 0 : cost, usage, result.prompt);
     } else {
       const s = await settleBlocked(j.userId, j.requestId, result.code);
       creditNotice = s.blockFee ? "blockFee" : s.blockWarn ? "blockWarn" : null;
-      await writeLog(j, "block", result.code, s.blockFee ? cost : 0);
+      await writeLog(j, "block", result.code, s.blockFee ? cost : 0, usage);
     }
     const { total } = await getBalance(j.userId);
     return { ...result, balance: total, creditNotice };
   } catch (e) {
     console.error("[generate] unexpected", String(e).slice(0, 300));
     await releaseCredits(j.userId, j.requestId, "error").catch(() => {});
-    await writeLog(j, "error", "SYSTEM_ERROR", 0);
+    await writeLog(j, "error", "SYSTEM_ERROR", 0, usage);
     return { ok: false, requestId: j.requestId, code: "SYSTEM_ERROR", message: BLOCK_MESSAGES.SYSTEM_ERROR };
   } finally {
+    // 결과와 관계없이 쓴 만큼 예산에 더한다 (차단·오류·취소도 AI 비용은 나갔다)
+    await recordUsage(usage).catch((e) => console.error("[budget] record failed", String(e).slice(0, 200)));
     await releaseSlot(j.userId, j.requestId).catch(() => {});
   }
 }

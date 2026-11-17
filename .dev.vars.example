@@ -7,3 +7,5 @@ TEST_ACCOUNTS=""
 SAFETY_DEBUG=""
 OLLAMA_URL=""
 OLLAMA_KEEP_ALIVE=""
+# 1이면 생성 즉시 중지 (운영·스테이징은 Cloudflare 대시보드 변수로)
+GENERATION_DISABLED=""

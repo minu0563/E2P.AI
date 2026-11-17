@@ -218,6 +218,7 @@ const en: Dictionary = {
     RATE_LIMITED: "Too many requests. Please try again in a moment.",
     BUSY: "You already have a request in progress. Please wait for it to finish.",
     QUEUE_FULL: "We're busy right now. Please try again in a moment.",
+    PAUSED: "Generation is paused for now. Please try again later.",
   },
   me: {
     title: "My account",

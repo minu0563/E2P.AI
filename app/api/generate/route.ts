@@ -1,4 +1,5 @@
 import appConfig from "@/config/app.json";
+import { checkBudget } from "@/lib/ai-budget";
 import { ImageError, validateImage } from "@/lib/image";
 import type { Fields } from "@/lib/pipeline/assemble";
 import { DEFAULT_PROFILE, FIELD_KEYS, PACES, getProfile, type Pace } from "@/lib/profile";
@@ -84,6 +85,13 @@ export async function POST(request: Request) {
     image = await validateImage(new Uint8Array(await file.arrayBuffer()), limits.max_image_side, limits.max_upload_bytes);
   } catch (e) {
     return bad(e instanceof ImageError ? e.message : "이미지를 읽을 수 없습니다.");
+  }
+
+  // 킬 스위치·AI 예산 (모든 계정, 테스트 계정 포함). 사유는 로그에만, 사용자에게는 "잠시 쉼"만
+  const budget = await checkBudget();
+  if (!budget.ok) {
+    console.warn(`[budget] generation refused: ${budget.reason}`);
+    return fail("PAUSED", 503);
   }
 
   // 전체 동시 생성 상한 (추론 서비스 분당 한도·비용 보호)

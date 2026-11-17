@@ -1,4 +1,4 @@
-import type { ChatRequest, ChatResult, InferenceClient } from "./types";
+import { InferenceError, isRetryableStatus, type ChatRequest, type ChatResult, type InferenceClient } from "./types";
 
 /** OpenAI 호환 호스팅 API 어댑터(OpenRouter, Together, Novita 등). 6단계에서 실측. */
 export class OpenAICompatibleClient implements InferenceClient {
@@ -42,7 +42,10 @@ export class OpenAICompatibleClient implements InferenceClient {
       }),
     });
     if (!res.ok) {
-      throw new Error(`${this.provider} ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      throw new InferenceError(`${this.provider} ${res.status}: ${(await res.text()).slice(0, 200)}`, {
+        status: res.status,
+        retryable: isRetryableStatus(res.status),
+      });
     }
     const data = await res.json();
     return {

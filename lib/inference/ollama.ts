@@ -1,4 +1,4 @@
-import type { ChatRequest, ChatResult, InferenceClient } from "./types";
+import { InferenceError, isRetryableStatus, type ChatRequest, type ChatResult, type InferenceClient } from "./types";
 
 const ns = (v?: number) => (v ? Math.round(v / 1e6) : undefined);
 
@@ -34,7 +34,10 @@ export class OllamaClient implements InferenceClient {
       }),
     });
     if (!res.ok) {
-      throw new Error(`ollama ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      throw new InferenceError(`ollama ${res.status}: ${(await res.text()).slice(0, 200)}`, {
+        status: res.status,
+        retryable: isRetryableStatus(res.status),
+      });
     }
     const data = await res.json();
     return {

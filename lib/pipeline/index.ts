@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { safetyConfig } from "@/system/config";
-import { getInferenceClient, models, type ChatResult } from "@/lib/inference";
+import { callLimits, getInferenceClient, models, type ChatRequest, type ChatResult } from "@/lib/inference";
 import { FIELD_KEYS, type Pace, type Profile } from "@/lib/profile";
 import {
   ImageAnalysisSchema,
@@ -47,6 +47,8 @@ export type PipelineInput = {
   onStage?: (stage: "analyzing" | "writing") => void;
   /** 사용자가 취소했는지. 분석이 끝난 뒤 확인해 생성 호출을 아낀다 */
   isCancelled?: () => Promise<boolean>;
+  /** AI 호출이 끝날 때마다 (사용량·비용 집계용) */
+  onUsage?: (r: ChatResult) => void;
 };
 
 export type PipelineResult =
@@ -119,7 +121,16 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const t0 = Date.now();
   const stages: Record<string, unknown>[] = [];
   const { profile } = input;
-  const client = getInferenceClient();
+  const inference = getInferenceClient();
+  // 모든 호출에 같은 시간·생각 모드 상한을 걸고, 끝나면 사용량을 알린다
+  const client = {
+    chat: async (req: ChatRequest) => {
+      const r = await inference.chat({ think: callLimits.thinking, ...req });
+      input.onUsage?.(r);
+      if (r.finishReason === "length") stages.push({ stage: "truncated", model: r.model, outputTokens: r.usage.outputTokens });
+      return r;
+    },
+  };
 
   let analysis: Analysis | null = null;
   const scan = scanTexts([input.request, ...FIELD_KEYS.map((k) => input.fields[k])]);
@@ -160,8 +171,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         schema: imageAnalysisJsonSchema,
         contextTokens: models.numCtx(),
         temperature: 0,
-        // instruct 변형 기준 출력 약 170토큰. thinking 변형을 쓰면 ANALYSIS_MAX_TOKENS를 2500 이상으로
-        maxTokens: Number(process.env.ANALYSIS_MAX_TOKENS ?? 800),
+        // 출력 약 170토큰. 생각 모드를 켜면 config/ai.json max_tokens.analysis를 2500 이상으로
+        maxTokens: callLimits.maxTokens.analysis,
+        timeoutMs: callLimits.timeoutMs.analysis,
       });
       stages.push(stageLog("analysis", r));
       try {
@@ -185,7 +197,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         user: requestUser({ request: input.request, fields: input.fields }),
         schema: requestClassJsonSchema,
         temperature: 0,
-        maxTokens: 100,
+        maxTokens: callLimits.maxTokens.request,
+        timeoutMs: callLimits.timeoutMs.request,
         // 생성 호출과 같은 컨텍스트 크기여야 Ollama가 모델을 다시 올리지 않는다
         contextTokens: models.numCtx(),
       });
@@ -269,7 +282,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         images: [input.image.base64],
         schema: blocksJsonSchema,
         temperature: attempt === 0 ? 0.4 : 0.2,
-        maxTokens: 1800,
+        maxTokens: callLimits.maxTokens.generation,
+        timeoutMs: callLimits.timeoutMs.generation,
         contextTokens: models.numCtx(),
       });
       stages.push(stageLog(`generation#${attempt + 1}`, r));

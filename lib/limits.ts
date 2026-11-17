@@ -1,4 +1,5 @@
 import "server-only";
+import aiConfig from "@/config/ai.json";
 import appConfig from "@/config/app.json";
 import { db } from "@/lib/db";
 
@@ -9,7 +10,7 @@ import { db } from "@/lib/db";
  * - 플랫폼 기능(Rate Limiting 바인딩·KV 등)으로 바꿀 때는 이 파일만 고친다.
  */
 export const RATE_CONFIG = appConfig.rate_limit;
-export const GENERATION_CONFIG = appConfig.generation;
+export const GENERATION_CONFIG = aiConfig.concurrency;
 
 /** 고정 창 카운터: 창(windowSec) 안에서 max번까지 허용 */
 export async function hit(key: string, max: number, windowSec: number) {

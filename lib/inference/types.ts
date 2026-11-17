@@ -27,6 +27,8 @@ export type ChatResult = {
     promptMs?: number;
     evalMs?: number;
   };
+  /** stop | length(최대 토큰에 걸려 잘림) 등. 업체가 주는 경우만 */
+  finishReason?: string;
 };
 
 /** 모든 모델 호출은 이 인터페이스 뒤로 숨긴다. 업체 전환은 설정만으로. */
@@ -34,3 +36,16 @@ export interface InferenceClient {
   readonly provider: string;
   chat(req: ChatRequest): Promise<ChatResult>;
 }
+
+/** 추론 호출 오류. retryable이면 재시도 대상(429·5xx·용량 부족). 시간 초과는 재시도하지 않는다 */
+export class InferenceError extends Error {
+  constructor(
+    message: string,
+    readonly opts: { status?: number; retryable?: boolean; timeout?: boolean } = {},
+  ) {
+    super(message);
+    this.name = "InferenceError";
+  }
+}
+
+export const isRetryableStatus = (s: number) => s === 429 || (s >= 500 && s <= 599);

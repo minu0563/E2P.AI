@@ -1,0 +1,32 @@
+{
+  "generation_enabled": true,
+  "budget": {
+    "daily_usd": 1.0,
+    "monthly_usd": 20.0,
+    "daily_generations": 500
+  },
+  "concurrency": {
+    "max_active_total": 20,
+    "slot_ttl_seconds": 300
+  },
+  "retry": {
+    "max_retries": 1,
+    "backoff_ms": 1000
+  },
+  "timeout_ms": {
+    "analysis": 60000,
+    "request": 20000,
+    "generation": 90000
+  },
+  "max_tokens": {
+    "analysis": 800,
+    "request": 100,
+    "generation": 1800
+  },
+  "thinking": false,
+  "pricing_usd_per_million": {
+    "@cf/google/gemma-4-26b-a4b-it": { "input": 0.1, "output": 0.3 },
+    "default": { "input": 1.0, "output": 3.0 }
+  },
+  "_comment": "AI 비용·안전 설정 한 곳. 바꾸고 커밋·푸시하면 배포에 반영된다. generation_enabled=false면 생성 전체를 멈춘다(급할 때는 Cloudflare 대시보드에서 변수 GENERATION_DISABLED=1, 배포 없이 즉시). budget: 하루(UTC 자정 기준, Cloudflare 무료 한도 초기화와 같음)·이번 달 AI 추정 비용(USD)과 하루 생성 건수 상한. 넘으면 모든 사용자(테스트 계정 포함)의 새 생성을 막는다. 동시에 진행 중인 건은 끝까지 가므로 최대 max_active_total건만큼 넘칠 수 있다. 사용자별 하루 상한은 credits.json의 daily_limit. concurrency: max_active_total=전체 동시 생성 상한, slot_ttl_seconds=사용자 동시 1건 자리 최대 유지 시간. retry: AI가 429·5xx·용량 부족이면 max_retries회만 다시(시간 초과는 다시 하지 않음, 비용이 이미 나갔을 수 있음). timeout_ms·max_tokens: 호출별 상한. thinking: 생각 모드(켜면 생각 토큰도 출력 요금, 비용 몇 배). pricing_usd_per_million: 추정 비용 계산용 100만 토큰당 단가(2026-11 Cloudflare 가격표). 목록에 없는 모델은 default(비싸게 잡음)로 계산, ollama(로컬)는 0."
+}

@@ -9,6 +9,8 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai" }],
   "observability": { "enabled": true },
+  // Workers AI (API 키 없음, 이 Worker 안에서만 호출 가능)
+  "ai": { "binding": "AI" },
   // 민감하지 않은 설정만
   "vars": {
     "TERMS_VERSION": "2026-11-12",
@@ -33,9 +35,10 @@
       "vars": {
         "TERMS_VERSION": "2026-11-12",
         "APP_URL": "https://e2p-ai-staging.e2p.workers.dev",
-        "INFERENCE_PROVIDER": "ollama",
-        "MODEL": "gemma4:12b"
+        "INFERENCE_PROVIDER": "workers-ai",
+        "MODEL": "@cf/google/gemma-4-26b-a4b-it"
       },
+      "ai": { "binding": "AI" },
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",

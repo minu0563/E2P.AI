@@ -9,15 +9,11 @@
     "max_request_chars": 300,
     "max_field_chars": 200
   },
-  "generation": {
-    "max_active_total": 20,
-    "slot_ttl_seconds": 300
-  },
   "rate_limit": {
     "user_concurrent": 1,
     "user_per_minute": 6,
     "ip_per_minute": 30,
     "login_ip_per_minute": 20
   },
-  "_comment": "placeholder_mode는 유료 기능 플래그(결제 연동 전까지 개발용으로 true). rate_limit: 사용자 동시 요청 수, 사용자·IP 1분당 생성 요청, 로그인 IP 1분당 요청. limits: max_source_bytes=브라우저에서 고를 수 있는 원본 크기, max_upload_bytes=브라우저가 줄여 보낸 뒤 서버가 받는 최대 크기, max_image_side=긴 변(브라우저가 이 크기로 줄인다). generation: max_active_total=전체 동시 생성 상한(넘으면 잠시 후 다시), slot_ttl_seconds=사용자 동시 1건 자리의 최대 유지 시간(비정상 종료 대비)."
+  "_comment": "placeholder_mode는 유료 기능 플래그(결제 연동 전까지 개발용으로 true). rate_limit: 사용자 동시 요청 수, 사용자·IP 1분당 생성 요청, 로그인 IP 1분당 요청. limits: max_source_bytes=브라우저에서 고를 수 있는 원본 크기, max_upload_bytes=브라우저가 줄여 보낸 뒤 서버가 받는 최대 크기, max_image_side=긴 변(브라우저가 이 크기로 줄인다). 동시 생성 상한·AI 예산은 ai.json."
 }

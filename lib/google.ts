@@ -22,7 +22,11 @@ function clientId() {
   return id;
 }
 
-export function createAuthRequest() {
+/**
+ * reauth: 관리자 이미지 열람용 다시 로그인. Google이 계정 선택이 아니라 실제 로그인을 다시 요구하게 하고(prompt=login),
+ * max_age=0으로 id_token에 auth_time(실제 로그인 시각)을 받아 서버가 "방금 로그인했는지"를 확인한다.
+ */
+export function createAuthRequest(opts: { reauth?: { loginHint: string } } = {}) {
   const state = randomBytes(24).toString("base64url");
   const verifier = randomBytes(48).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
@@ -35,12 +39,20 @@ export function createAuthRequest() {
     state,
     code_challenge: challenge,
     code_challenge_method: "S256",
-    prompt: "select_account",
+    ...(opts.reauth
+      ? { prompt: "login", max_age: "0", login_hint: opts.reauth.loginHint }
+      : { prompt: "select_account" }),
   }).toString();
   return { url: url.toString(), state, verifier };
 }
 
-export type GoogleIdentity = { sub: string; email: string; name: string | null };
+export type GoogleIdentity = {
+  sub: string;
+  email: string;
+  name: string | null;
+  /** 실제 로그인 시각(초). max_age를 보낸 요청에만 들어온다 */
+  authTime?: number;
+};
 
 export async function exchangeCode(code: string, verifier: string): Promise<GoogleIdentity> {
   const res = await fetch(TOKEN_URL, {
@@ -68,10 +80,16 @@ export async function exchangeCode(code: string, verifier: string): Promise<Goog
     email?: string;
     email_verified?: boolean;
     name?: string;
+    auth_time?: number;
   };
   if (claims.iss !== "https://accounts.google.com" && claims.iss !== "accounts.google.com") throw new Error("bad iss");
   if (claims.aud !== clientId()) throw new Error("bad aud");
   if (claims.exp * 1000 < Date.now()) throw new Error("expired");
   if (!claims.email || claims.email_verified !== true) throw new Error("email not verified");
-  return { sub: claims.sub, email: claims.email.toLowerCase(), name: claims.name ?? null };
+  return {
+    sub: claims.sub,
+    email: claims.email.toLowerCase(),
+    name: claims.name ?? null,
+    ...(typeof claims.auth_time === "number" && { authTime: claims.auth_time }),
+  };
 }

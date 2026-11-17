@@ -186,3 +186,21 @@ model AiUsage {
   costMicroUsd BigInt   @default(0)
   updatedAt    DateTime @updatedAt
 }
+
+/// 관리자 이미지 열람 세션 (Google 다시 로그인 뒤 발급). 열쇠는 그 탭에만 있고 여기엔 해시만 둔다
+model ImageViewSession {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
+  adminEmail   String
+  /// tuning(프롬프트 조정) | support(문의 대응) | other
+  purpose      String
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  expiresAt    DateTime
+  endedAt      DateTime?
+  /// manual | idle | max
+  endReason    String?
+  imagesLoaded Int       @default(0)
+
+  @@index([adminEmail, createdAt])
+}

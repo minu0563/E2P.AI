@@ -31,7 +31,7 @@ export type Result =
 /** 큐 진행 상태 */
 export type Progress = { status: "active"; stage: "analyzing" | "writing" };
 
-const APPEALABLE = ["AGE_UNCERTAIN", "SEXUAL_IMAGE", "SEXUAL_REQUEST", "THIRD_PARTY_CLAIM"];
+const APPEALABLE = ["AGE_UNCERTAIN", "SEXUAL_IMAGE", "SEXUAL_REQUEST", "THIRD_PARTY_CLAIM", "MODE_RESTRICTED", "OUTPUT_FILTER"];
 
 /** 개발 모드에서만 서버가 debug를 보낸다 */
 function DebugBox({ lines, title }: { lines?: string[]; title: string }) {
@@ -117,7 +117,7 @@ export function ResultPanel({
             {APPEALABLE.includes(result.code) && (
               <p className="mt-2 text-xs opacity-80">
                 {appealBefore}
-                <Link href="/contact" className="underline">
+                <Link href={result.requestId ? `/inquiry?id=${result.requestId}` : "/inquiry"} className="underline">
                   {t.appealLink}
                 </Link>
                 {appealAfter}

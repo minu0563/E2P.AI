@@ -52,8 +52,8 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
       orderBy: { createdAt: "desc" },
       take: 300,
     }),
-    // 다시 열어 고칠 수 있는 성공한 요청만 (거절·오류는 이용 현황의 숫자로만)
-    db.generationLog.findMany({ where: { userId: user.id, outcome: "ok" }, orderBy: { createdAt: "desc" }, take: 10 }),
+    // 최근 요청 (성공은 다시 열기, 모두 문의 가능)
+    db.generationLog.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10 }),
     // 차단으로 차감된 요청 (사용 내역에 "차단 차감"으로 표시)
     db.creditEntry.findMany({
       where: { userId: user.id, kind: "confirm", note: { startsWith: "block_fee:" } },
@@ -142,7 +142,14 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
       </div>
 
       <div className="flex flex-col gap-6">
-        <Block title={t.recent}>
+        <Block
+          title={t.recent}
+          right={
+            <Link href="/inquiry" className="text-xs text-muted hover:text-text hover:underline">
+              {t.inquiries} →
+            </Link>
+          }
+        >
           {logs.length === 0 ? (
             <p className="text-sm text-faint">{t.recentEmpty}</p>
           ) : (
@@ -151,18 +158,26 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
                 <li key={l.id} className="grid grid-cols-[1fr_auto] items-center gap-3 py-2.5 text-sm">
                   <span className="min-w-0">
                     <span className="block truncate">{l.requestText || t.noRequestText}</span>
-                    <span className="font-mono text-[11px] text-faint">{d(l.createdAt)}</span>
+                    <span className="font-mono text-[11px] text-faint">
+                      {d(l.createdAt)} ·{" "}
+                      <span className={l.outcome === "ok" ? "text-ok" : l.outcome === "block" ? "text-warn" : ""}>
+                        {t.outcomes[l.outcome] ?? l.outcome}
+                      </span>
+                    </span>
                   </span>
-                  {l.input ? (
-                    <Link
-                      href={`/generate?load=${l.requestId}`}
-                      className="text-xs font-medium underline decoration-accent underline-offset-4 hover:text-accent"
-                    >
-                      {t.open}
+                  <span className="flex gap-3">
+                    {l.outcome === "ok" && l.input && (
+                      <Link
+                        href={`/generate?load=${l.requestId}`}
+                        className="text-xs font-medium underline decoration-accent underline-offset-4 hover:text-accent"
+                      >
+                        {t.open}
+                      </Link>
+                    )}
+                    <Link href={`/inquiry?id=${l.requestId}`} className="text-xs text-muted hover:text-text hover:underline">
+                      {t.inquire}
                     </Link>
-                  ) : (
-                    <span />
-                  )}
+                  </span>
                 </li>
               ))}
             </ul>

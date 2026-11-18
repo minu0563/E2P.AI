@@ -23,6 +23,7 @@ model User {
   consents   Consent[]
   credits    CreditEntry[]
   logs       GenerationLog[]
+  inquiries  Inquiry[]
 }
 
 model Session {
@@ -203,4 +204,27 @@ model ImageViewSession {
   imagesLoaded Int       @default(0)
 
   @@index([adminEmail, createdAt])
+}
+
+/// 사용자 문의. 생성 건(requestId)에 연결하면 관리자가 그때 이미지·판정·프롬프트를 함께 본다
+model Inquiry {
+  id         String    @id @default(cuid())
+  userId     String
+  /// 연결된 생성 요청 (없으면 일반 문의)
+  requestId  String?
+  /// appeal(오차단 이의 제기) | quality(결과 품질) | other
+  category   String
+  body       String
+  /// new | in_progress | done
+  status     String    @default("new")
+  adminNote  String?
+  handledBy  String?
+  handledAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, requestId])
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }

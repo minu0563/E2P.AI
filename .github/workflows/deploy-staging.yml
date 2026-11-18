@@ -77,6 +77,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      # 스테이징 DB(Neon)에 마이그레이션 적용. 배포 직전에 하고, 실패하면 배포하지 않는다.
+      # 주소는 Neon 직접 연결(pooler 아님). 이미 적용된 마이그레이션은 건너뛴다
+      - name: Migrate staging DB
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo "STAGING_DATABASE_URL secret이 없습니다"; exit 1; fi
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+
       - name: Deploy to staging
         # opennextjs-cloudflare deploy는 캐시 업로드용으로 원격 연결(AI 바인딩)을 여는데, 스테이징이 Access로 잠겨 있어 막힌다.
         # 증분 캐시를 쓰지 않으므로 빌드 결과를 wrangler로 바로 올린다 (서비스 토큰을 CI에 두지 않음)

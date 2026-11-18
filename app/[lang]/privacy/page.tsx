@@ -53,11 +53,11 @@ function Ko() {
 
       <h2>2. 보유·이용 기간</h2>
       <ul>
-        <li>계정 정보: 회원 탈퇴 시까지 (탈퇴 후 지체 없이 파기)</li>
-        <li>요청 기록·크레딧 내역: [보관 기간 확정 필요] 후 파기</li>
+        <li>계정 정보: 회원 탈퇴 시까지. 다만 부정 이용 방지와 수사기관 협조를 위해 이메일 주소·계정 식별자·정지 기록은 탈퇴 후 [1년, 확정 필요] 보관한 뒤 파기</li>
+        <li>요청 기록·크레딧 내역: 생성일로부터 [1년, 확정 필요] 보관한 뒤 파기 (회원 탈퇴로 앞당겨 파기하지 않음)</li>
         <li>결제 도입 시 「전자상거래법」에 따른 보관: 계약·청약철회 및 대금결제 기록 5년, 소비자 불만·분쟁 처리 기록 3년</li>
         <li>「통신비밀보호법」에 따른 접속 기록: 3개월</li>
-        <li>업로드 이미지: 1항의 기간(72시간 / 30일). 회원 탈퇴 시 즉시 삭제(수사기관 보존 요청 건 제외)</li>
+        <li>업로드 이미지: 1항의 기간(72시간 / 30일)까지 보관한 뒤 삭제. 회원 탈퇴로 앞당겨 삭제하지 않으며, 수사기관 보존 요청 건은 요청 기간 동안 보존</li>
         <li>이미지 판정 정보: 요청 기록과 같은 기간</li>
         <li>운영자 접근 기록(이미지 열람·내려받기 포함): 1년</li>
       </ul>
@@ -88,7 +88,7 @@ function Ko() {
       <h2>6. 이용자의 권리</h2>
       <p>
         이용자는 언제든지 자신의 개인정보 열람·정정·삭제·처리정지와 회원 탈퇴를 요청할 수 있으며, 회사는 지체 없이 조치합니다.
-        요청은 문의 이메일({SITE.contactEmail})로 할 수 있습니다.
+        요청은 문의 이메일({SITE.contactEmail})로 할 수 있습니다. 다만 2항에서 따로 정한 정보(요청 기록, 탈퇴 후 보관하는 계정 정보 등)는 그 기간이 끝난 뒤 파기합니다.
       </p>
       <p>
         자신이 찍힌 이미지가 본인 동의 없이 업로드되었다고 생각하는 분은 회원이 아니어도 문의 이메일로 삭제를 요청할 수 있으며, 회사는 확인
@@ -172,11 +172,11 @@ function En() {
 
       <h2>2. Retention</h2>
       <ul>
-        <li>Account data: until you close your account, then deleted without delay.</li>
-        <li>Request and credit records: [retention period to be confirmed].</li>
+        <li>Account data: until you close your account. To prevent misuse and to cooperate with law enforcement, your email address, account identifier and suspension records are kept for [1 year, to be confirmed] after closure, then deleted.</li>
+        <li>Request and credit records: [1 year, to be confirmed] from creation, then deleted. Closing your account does not shorten this.</li>
         <li>Payment records, once payments are introduced: as required by law (up to 5 years).</li>
         <li>Access logs: 3 months.</li>
-        <li>Uploaded images: as in section 1 (72 hours / 30 days); deleted immediately when you close your account, except where a law enforcement preservation request applies.</li>
+        <li>Uploaded images: kept for the periods in section 1 (72 hours / 30 days), then deleted. Closing your account does not shorten this; images under a law enforcement preservation request are kept for the requested period.</li>
         <li>Image assessment data: same as request records.</li>
         <li>Staff access logs (including image views and downloads): 1 year.</li>
       </ul>
@@ -204,7 +204,7 @@ function En() {
       <p>
         You can request access to, correction or deletion of your data, restriction of processing, or account closure
         at any time by emailing {SITE.contactEmail}. Depending on where you live (for example under the GDPR), you may
-        also have the right to data portability and to complain to your local data protection authority.
+        also have the right to data portability and to complain to your local data protection authority. Data that section 2 says we keep for a set period (such as request records and account data kept after closure) is deleted when that period ends.
       </p>
       <p>
         If you believe an image of you was uploaded without your consent, you can ask us to delete it by email even if

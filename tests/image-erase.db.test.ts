@@ -1,4 +1,4 @@
-/** 이미지 삭제 요청: hold는 남기고, 저장소에서 지운 뒤에만 기록을 비운다. DATABASE_URL이 없으면 건너뛴다 */
+/** 이미지 삭제 요청(당사자, 한 건씩): hold는 남기고, 저장소에서 지운 뒤에만 기록을 비운다. DATABASE_URL이 없으면 건너뛴다 */
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -37,16 +37,12 @@ run("이미지 삭제", async () => {
     await db.user.deleteMany({ where: { id: { in: [me, other] } } });
   });
 
-  it("사용자 전체: hold는 남기고 나머지만 지운다, 남의 것은 건드리지 않는다", async () => {
-    const a = await log(me, "recent");
-    const b = await log(me, "blocked");
+  it("생성 건 하나: hold는 남긴다, 남의 것·다른 건은 건드리지 않는다", async () => {
     const h = await log(me, "hold");
     const o = await log(other, "recent");
-    const removed: string[] = [];
-    const r = await eraseImages({ userId: me }, async (ids) => (removed.push(...ids), true));
-    expect(r).toEqual({ ok: true, deleted: 2, held: 1 });
-    expect(removed.sort()).toEqual([a.requestId, b.requestId].sort());
-    expect(await tier(a.requestId)).toBeNull();
+    const fn = vi.fn(async () => true);
+    expect(await eraseImages({ requestId: h.requestId }, fn)).toEqual({ ok: true, deleted: 0, held: 1 });
+    expect(fn).not.toHaveBeenCalled();
     expect(await tier(h.requestId)).toBe("hold");
     expect(await tier(o.requestId)).toBe("recent");
   });
@@ -67,7 +63,7 @@ run("이미지 삭제", async () => {
 
   it("지울 것이 없으면 저장소를 부르지 않는다", async () => {
     const fn = vi.fn(async () => true);
-    expect(await eraseImages({ userId: other + "-none" }, fn)).toEqual({ ok: true, deleted: 0, held: 0 });
+    expect(await eraseImages({ requestId: randomUUID() }, fn)).toEqual({ ok: true, deleted: 0, held: 0 });
     expect(fn).not.toHaveBeenCalled();
   });
 });

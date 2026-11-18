@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
  * - 같은 생성 건에는 문의 1건 (중복 접수 방지).
  * - 하루 접수 수는 호출 측(라우트)이 속도 제한으로 막는다.
  */
-export const INQUIRY_CATEGORIES = ["appeal", "quality", "other"] as const;
+export const INQUIRY_CATEGORIES = ["appeal", "quality", "deletion", "other"] as const;
 export const INQUIRY_MAX_CHARS = 1000;
 export const INQUIRY_PER_DAY = 5;
 

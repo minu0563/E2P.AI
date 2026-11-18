@@ -259,7 +259,7 @@ const en: Dictionary = {
     inquire: "Ask",
     inquiries: "My inquiries",
     noRequestText: "(no request text)",
-    deleteAccount: "To delete your account, contact us through the Contact page.",
+    deleteAccount: "To delete your account or photos, send an inquiry with the type \"Delete my photo or account\".",
   },
   inquiry: {
     title: "Send an inquiry",
@@ -268,7 +268,7 @@ const en: Dictionary = {
     noTarget: "This will be sent as a general inquiry. To ask about a specific request, use \"Ask\" on My account or on the result screen.",
     imageExpired: "The image for this request is past its retention period, so we may not be able to check it. Please describe the issue in detail.",
     category: "Type",
-    categories: { appeal: "I think this was declined by mistake", quality: "The result looks wrong", other: "Other" },
+    categories: { appeal: "I think this was declined by mistake", quality: "The result looks wrong", deletion: "Delete my photo or account", other: "Other" },
     body: "Details",
     bodyPlaceholder: "What went wrong? (5–1000 characters)",
     submit: "Send",

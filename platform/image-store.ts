@@ -61,6 +61,19 @@ export async function deleteImage(tier: StoredTier, requestId: string) {
   await b.bucket.delete(path(tier, requestId));
 }
 
+/**
+ * 삭제 요청(탈퇴·당사자 요청)용: 요청 ID들의 이미지를 hold/를 뺀 모든 폴더에서 지운다
+ * (기록된 폴더와 실제 위치가 어긋나도 남지 않게). 저장소가 없으면 false — 호출 측은 DB를 바꾸지 않는다
+ */
+export async function deleteImagesExceptHold(requestIds: string[]): Promise<boolean> {
+  const b = binding();
+  if (!b) return false;
+  const tiers: StoredTier[] = ["recent", "blocked", "quarantine"];
+  const keys = requestIds.flatMap((id) => tiers.map((t) => path(t, id)));
+  for (let i = 0; i < keys.length; i += 900) await b.bucket.delete(keys.slice(i, i + 900)); // R2 한 번에 최대 1000개
+  return true;
+}
+
 /** 다른 폴더로 옮기기 (예: 수사기관 보존 요청 → hold/). 같은 키로 암호화된 그대로 복사한 뒤 원본 삭제 */
 export async function moveImage(from: StoredTier, to: StoredTier, requestId: string): Promise<boolean> {
   const b = binding();

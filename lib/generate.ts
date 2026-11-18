@@ -2,7 +2,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { addUsage, emptyUsage, recordUsage, type Usage } from "@/lib/ai-budget";
 import { decideTier, expiresAt, type ImageTier } from "@/lib/image-retention";
-import { putImage, runAfterResponse } from "@/platform/image-store";
+import { deleteImage, putImage, runAfterResponse } from "@/platform/image-store";
 import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, settleBlocked } from "@/lib/credits";
 import { db } from "@/lib/db";
 import type { HistoryInput } from "@/lib/history";
@@ -100,8 +100,14 @@ function storeImageLater(j: GenerationJob, tier: ImageTier) {
   const task = (async () => {
     try {
       const ok = await putImage(tier, j.requestId, Buffer.from(j.image.base64, "base64"));
-      if (ok) await db.generationLog.update({ where: { requestId: j.requestId }, data: { imageStoredAt: new Date() } });
-      else console.warn("[image] store unavailable (R2 binding or IMAGE_KEY missing)");
+      if (ok) {
+        // 저장하는 사이 삭제 요청으로 지워졌으면(imageTier가 비워짐) 방금 올린 것도 지운다
+        const r = await db.generationLog.updateMany({
+          where: { requestId: j.requestId, imageTier: tier },
+          data: { imageStoredAt: new Date() },
+        });
+        if (r.count === 0) await deleteImage(tier, j.requestId);
+      } else console.warn("[image] store unavailable (R2 binding or IMAGE_KEY missing)");
     } catch (e) {
       console.error("[image] store failed", String(e).slice(0, 200));
     }

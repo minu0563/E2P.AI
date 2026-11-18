@@ -268,7 +268,7 @@ const ko = {
     inquire: "문의",
     inquiries: "문의 내역",
     noRequestText: "(요청 문장 없음)",
-    deleteAccount: "계정 삭제를 원하시면 문의 페이지로 요청해 주세요.",
+    deleteAccount: "계정·사진 삭제를 원하시면 문의에서 '사진·계정 삭제 요청'으로 보내 주세요.",
   },
   inquiry: {
     title: "문의하기",
@@ -277,7 +277,7 @@ const ko = {
     noTarget: "특정 요청 없이 일반 문의로 접수됩니다. 특정 요청에 대한 문의는 내 계정의 최근 요청이나 결과 화면에서 \"문의\"를 눌러 주세요.",
     imageExpired: "이 요청의 이미지는 보관 기간이 지나 운영자가 확인하기 어려울 수 있습니다. 내용을 자세히 적어 주세요.",
     category: "유형",
-    categories: { appeal: "잘못 차단된 것 같아요", quality: "결과 품질이 이상해요", other: "기타" } as Record<string, string>,
+    categories: { appeal: "잘못 차단된 것 같아요", quality: "결과 품질이 이상해요", deletion: "사진·계정 삭제 요청", other: "기타" } as Record<string, string>,
     body: "내용",
     bodyPlaceholder: "어떤 점이 문제인지 적어 주세요. (5~1000자)",
     submit: "접수하기",

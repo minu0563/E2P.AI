@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { hasCurrentConsent, recordConsent, startSession, upsertGoogleUser } from "@/lib/auth";
+import { DisposableEmailError, hasCurrentConsent, recordConsent, startSession, upsertGoogleUser } from "@/lib/auth";
 import { OAUTH_COOKIE, exchangeCode, safeNext } from "@/lib/google";
 
 export async function GET(request: Request) {
@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     await startSession(user.id);
     return to(safeNext(saved.n));
   } catch (e) {
+    if (e instanceof DisposableEmailError) return to("/login?error=disposable");
     console.error("[auth] google callback failed", String(e).slice(0, 200));
     return to("/login?error=google");
   }

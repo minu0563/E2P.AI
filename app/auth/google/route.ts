@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import appConfig from "@/config/app.json";
 import { OAUTH_COOKIE, createAuthRequest, safeNext } from "@/lib/google";
 import { clientIp, hit } from "@/lib/limits";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
@@ -9,6 +10,10 @@ export async function GET(request: Request) {
   const next = safeNext(params.get("next"));
   if (!(await hit(`login:${clientIp(request)}`, appConfig.rate_limit.login_ip_per_minute, 60))) {
     return Response.redirect(new URL("/login?error=rate", request.url), 302);
+  }
+  // 봇 방지: 로그인 화면의 Turnstile 확인 값 (한 번만 쓸 수 있고 몇 분 뒤 만료)
+  if ((await verifyTurnstile(params.get("ts"), clientIp(request))) === "failed") {
+    return Response.redirect(new URL("/login?error=bot", request.url), 302);
   }
 
   let auth;

@@ -1,14 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import Script from "next/script";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
 
-export function GoogleButton({ next, t }: { next?: string; t: Dictionary["login"] }) {
+type TurnstileApi = {
+  render(el: HTMLElement, opts: Record<string, unknown>): string;
+  remove(id: string): void;
+};
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
+
+/** 봇 방지(Cloudflare Turnstile) 위젯. 확인되면 onToken(값), 만료·오류면 onToken(null) */
+function Turnstile({ siteKey, onToken }: { siteKey: string; onToken: (v: string | null) => void }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [loaded, setLoaded] = useState(false);
+  const mount = useCallback(() => {
+    if (!box.current || !window.turnstile) return;
+    return window.turnstile.render(box.current, {
+      sitekey: siteKey,
+      action: "login",
+      callback: (v: string) => onToken(v),
+      "expired-callback": () => onToken(null),
+      "error-callback": () => onToken(null),
+    });
+  }, [siteKey, onToken]);
+  useEffect(() => {
+    if (!loaded) return;
+    const id = mount();
+    return () => {
+      if (id) window.turnstile?.remove(id);
+    };
+  }, [loaded, mount]);
+  return (
+    <>
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onReady={() => setLoaded(true)}
+      />
+      <div ref={box} className="flex min-h-[65px] justify-center" />
+    </>
+  );
+}
+
+export function GoogleButton({ next, t, siteKey }: { next?: string; t: Dictionary["login"]; siteKey?: string | null }) {
+  // 사이트 키가 없으면(로컬 개발) 봇 방지 없이 진행
+  const [token, setToken] = useState<string | null>(null);
   const [agreeTerms, setAgreeTerms] = useState(false);
   // 이미지 보관 동의는 따로 체크한다 (무엇을 얼마나 보관하는지 분명히 알리고 받기). 둘 다 같은 약관 버전으로 기록된다
   const [agreeImages, setAgreeImages] = useState(false);
-  const agree = agreeTerms && agreeImages;
-  const href = `/auth/google?agree=1${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  const agree = agreeTerms && agreeImages && (!siteKey || !!token);
+  const href = `/auth/google?agree=1${next ? `&next=${encodeURIComponent(next)}` : ""}${
+    token ? `&ts=${encodeURIComponent(token)}` : ""
+  }`;
   const link = (href: string, label: string) => (
     <a href={href} target="_blank" className="text-text underline decoration-faint underline-offset-2 hover:decoration-accent">
       {label}
@@ -49,6 +97,8 @@ export function GoogleButton({ next, t }: { next?: string; t: Dictionary["login"
           </ul>
         </details>
       </div>
+
+      {siteKey && <Turnstile siteKey={siteKey} onToken={setToken} />}
 
       {/* Google 표준 버튼 모양: 흰 바탕 + 로고 */}
       <a

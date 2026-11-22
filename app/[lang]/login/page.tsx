@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getDictionary } from "@/lib/i18n";
 import { SITE } from "@/lib/site";
+import { turnstileSiteKey } from "@/lib/turnstile";
 import { GoogleButton } from "./google-button";
 import "./login.css";
 
@@ -71,7 +72,7 @@ async function LoginActions({
           {message}
         </p>
       )}
-      <GoogleButton next={typeof next === "string" ? next : undefined} t={t} />
+      <GoogleButton next={typeof next === "string" ? next : undefined} t={t} siteKey={turnstileSiteKey()} />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { grantSignupCredits } from "@/lib/credits";
 import { db } from "@/lib/db";
+import { isDisposableEmail } from "@/lib/disposable-email";
 import type { GoogleIdentity } from "@/lib/google";
 
 // 운영(HTTPS)에서는 __Host- 접두사: Secure·Path=/·도메인 고정이 강제되어 하위 도메인에서 덮어쓸 수 없다
@@ -12,11 +13,15 @@ const SESSION_DAYS = 30;
 const hash = (v: string) => createHash("sha256").update(v).digest("hex");
 const newToken = () => randomBytes(32).toString("base64url");
 
-/** Google 계정으로 사용자 생성/조회. 처음 가입이면 무료 크레딧 지급. */
+/** 일회용 메일로 새로 가입하려는 경우 (기존 계정은 로그인 허용) */
+export class DisposableEmailError extends Error {}
+
+/** Google 계정으로 사용자 생성/조회. 처음 가입이면 무료 크레딧 지급. 일회용 메일로는 새로 가입할 수 없다. */
 export async function upsertGoogleUser(g: GoogleIdentity) {
   const existing =
     (await db.user.findUnique({ where: { googleSub: g.sub } })) ??
     (await db.user.findUnique({ where: { email: g.email } }));
+  if (!existing && isDisposableEmail(g.email)) throw new DisposableEmailError();
   const user = existing
     ? await db.user.update({
         where: { id: existing.id },

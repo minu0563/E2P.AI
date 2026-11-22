@@ -124,6 +124,8 @@ const en: Dictionary = {
       expired: "The sign-in request expired. Please try again.",
       config: "Sign-in is not configured yet.",
       rate: "Too many sign-in attempts. Please try again in a minute.",
+      bot: "The bot check failed. Please try again.",
+      disposable: "Disposable email addresses cannot be used to sign up. Please use another Google account.",
       suspended: "This account has been suspended. Contact us if you think this is a mistake.",
     },
   },

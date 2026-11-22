@@ -1,4 +1,5 @@
 import appConfig from "@/config/app.json";
+import { isRestricted } from "@/lib/abuse";
 import { checkBudget } from "@/lib/ai-budget";
 import { ImageError, validateImage } from "@/lib/image";
 import type { Fields } from "@/lib/pipeline/assemble";
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
   const test = isTestAccount(user.email);
   if (!test && !(await hit(`ip:${clientIp(request)}`, RATE_CONFIG.ip_per_minute, 60))) return fail("RATE_LIMITED", 429);
   if (!(await hasCurrentConsent(user.id))) return fail("LOGIN_REQUIRED", 401);
+  // 연속 차단으로 일시 제한된 계정 (lib/abuse.ts)
+  if (isRestricted(user)) return fail("RESTRICTED", 429);
   if (!test && !(await hit(`user:${user.id}`, RATE_CONFIG.user_per_minute, 60))) return fail("RATE_LIMITED", 429);
 
   let form: FormData;

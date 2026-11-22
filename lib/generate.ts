@@ -1,5 +1,6 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
+import { recordBlock, type AbuseNotice } from "@/lib/abuse";
 import { addUsage, emptyUsage, recordUsage, type Usage } from "@/lib/ai-budget";
 import { decideTier, expiresAt, type ImageTier } from "@/lib/image-retention";
 import { deleteImage, putImage, runAfterResponse } from "@/platform/image-store";
@@ -30,7 +31,7 @@ export type GenerationJob = {
 };
 
 export type GenerationResult =
-  | (PipelineResult & { balance?: number; creditNotice?: "blockFee" | "blockWarn" | null })
+  | (PipelineResult & { balance?: number; creditNotice?: "blockFee" | "blockWarn" | null; abuseNotice?: AbuseNotice | null })
   | { ok: false; code: "CANCELLED"; message: string };
 
 async function writeLog(
@@ -145,6 +146,7 @@ export async function runGeneration(
     if (opts.isCancelled()) return await cancelled();
 
     let creditNotice: "blockFee" | "blockWarn" | null = null;
+    let abuseNotice: AbuseNotice | null = null;
     if (result.ok) {
       await confirmCredits(j.userId, j.requestId);
       await writeLog(j, "ok", null, j.test ? 0 : cost, usage, judgment, result.prompt);
@@ -152,9 +154,16 @@ export async function runGeneration(
       const s = await settleBlocked(j.userId, j.requestId, result.code);
       creditNotice = s.blockFee ? "blockFee" : s.blockWarn ? "blockWarn" : null;
       await writeLog(j, "block", result.code, s.blockFee ? cost : 0, usage, judgment);
+      // 연속 차단 단계 조치 (기록을 남기지 않는 관리자 계정은 제외). 실패해도 결과에는 영향 없음
+      if (!j.noRecord) {
+        abuseNotice = await recordBlock(j.userId, result.code).catch((e) => {
+          console.error("[abuse] record failed", String(e).slice(0, 200));
+          return null;
+        });
+      }
     }
     const { total } = await getBalance(j.userId);
-    return { ...result, balance: total, creditNotice };
+    return { ...result, balance: total, creditNotice, abuseNotice };
   } catch (e) {
     console.error("[generate] unexpected", String(e).slice(0, 300));
     await releaseCredits(j.userId, j.requestId, "error").catch(() => {});

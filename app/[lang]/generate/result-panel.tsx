@@ -26,12 +26,14 @@ export type Result =
       debug?: string[];
       /** 차단 크레딧 안내: 이번에 차감됨 / 다음부터 차감됨 */
       creditNotice?: "blockFee" | "blockWarn" | null;
+      /** 연속 차단 안내: 경고 / 이번 차단으로 일시 제한됨 */
+      abuseNotice?: "abuseWarn" | "abuseRestricted" | null;
     };
 
 /** 큐 진행 상태 */
 export type Progress = { status: "active"; stage: "analyzing" | "writing" };
 
-const APPEALABLE = ["AGE_UNCERTAIN", "SEXUAL_IMAGE", "SEXUAL_REQUEST", "THIRD_PARTY_CLAIM", "MODE_RESTRICTED", "OUTPUT_FILTER"];
+const APPEALABLE = ["AGE_UNCERTAIN", "SEXUAL_IMAGE", "SEXUAL_REQUEST", "THIRD_PARTY_CLAIM", "MODE_RESTRICTED", "OUTPUT_FILTER", "RESTRICTED"];
 
 /** 개발 모드에서만 서버가 debug를 보낸다 */
 function DebugBox({ lines, title }: { lines?: string[]; title: string }) {
@@ -109,6 +111,7 @@ export function ResultPanel({
             {result.creditNotice && (
               <p className="mt-2 text-xs font-medium">{t[result.creditNotice]}</p>
             )}
+            {result.abuseNotice && <p className="mt-2 text-xs font-semibold">{t[result.abuseNotice]}</p>}
             {result.code === "LOGIN_REQUIRED" && (
               <Link href="/login?next=/generate" className="btn btn-primary mt-3 px-3 py-1.5 text-xs">
                 {t.loginCta}

@@ -18,6 +18,8 @@ model User {
   /// 관리자가 정지한 시각 (있으면 로그인·생성 불가)
   suspendedAt   DateTime?
   suspendReason String?
+  /// 연속 차단에 따른 생성 일시 제한 (이 시각까지 생성 불가, 로그인은 됨). lib/abuse.ts
+  restrictedUntil DateTime?
   createdAt  DateTime  @default(now())
   sessions   Session[]
   consents   Consent[]

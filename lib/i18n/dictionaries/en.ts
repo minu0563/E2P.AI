@@ -212,6 +212,8 @@ const en: Dictionary = {
     neutralized: "Some wording was adjusted.",
     blockFee: "Repeated declined requests today: this one used a credit.",
     blockWarn: "Several requests were declined today. Further declined requests will use a credit.",
+    abuseWarn: "Several requests were declined in a short time. If this continues, generation will be paused for a while.",
+    abuseRestricted: "Too many requests were declined. Generation is paused for the next 24 hours.",
     debug: "Internal reason (dev only, hidden in production)",
   },
   errors: {
@@ -230,6 +232,7 @@ const en: Dictionary = {
     BUSY: "You already have a request in progress. Please wait for it to finish.",
     QUEUE_FULL: "We're busy right now. Please try again in a moment.",
     PAUSED: "Generation is paused for now. Please try again later.",
+    RESTRICTED: "Generation is temporarily paused because several requests were declined. If you think this is a mistake, please contact us.",
   },
   me: {
     title: "My account",

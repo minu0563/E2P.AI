@@ -35,6 +35,8 @@
       "vars": {
         "TERMS_VERSION": "2026-11-17",
         "APP_URL": "https://e2p-ai-staging.e2p.workers.dev",
+        // 봇 방지 사이트 키(공개값). 비밀 키 TURNSTILE_SECRET은 Workers Secrets
+        "TURNSTILE_SITE_KEY": "0x4AAAAAAGNOnV5vMY-_gdl7",
         "INFERENCE_PROVIDER": "workers-ai",
         "MODEL": "@cf/google/gemma-4-26b-a4b-it"
       },

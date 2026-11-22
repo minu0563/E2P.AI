@@ -21,6 +21,8 @@ export type GenerationJob = {
   userId: string;
   /** 테스트 계정: 크레딧 예약 없음, safetyShadow면 안전 검사 shadow(개발 환경만) */
   test?: { safetyShadow: boolean };
+  /** 관리자 계정(ADMIN_EMAILS): 생성 기록·이미지를 DB·R2에 남기지 않는다 (관리 화면에 운영자 테스트가 섞이지 않게). 안전 검사·예산 집계는 같다 */
+  noRecord?: boolean;
   profile: Profile;
   input: Omit<PipelineInput, "image" | "profile" | "requestId" | "onStage" | "isCancelled" | "safetyMode" | "onUsage" | "onJudgment">;
   image: PipelineInput["image"];
@@ -40,6 +42,7 @@ async function writeLog(
   judgment: Judgment | null,
   prompt?: string,
 ) {
+  if (j.noRecord) return;
   const img = judgment?.image;
   const tier = decideTier(outcome, blockCode, judgment);
   const saved = await db.generationLog

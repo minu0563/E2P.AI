@@ -12,6 +12,7 @@ import { runGeneration } from "@/lib/generate";
 import { GENERATION_CONFIG, RATE_CONFIG, activeCount, claimSlot, clientIp, hit, releaseSlot } from "@/lib/limits";
 import { forbidden, isSameOrigin } from "@/lib/security";
 import { isTestAccount, testSafetyShadowAllowed } from "@/lib/test-accounts";
+import { isAdminEmail } from "@/system/admin/guard";
 
 const { limits, features } = appConfig;
 
@@ -142,6 +143,8 @@ export async function POST(request: Request) {
           userId: user.id,
           // 안전 검사 shadow는 개발 환경의 테스트 계정만 (운영에서는 모두 같은 규칙)
           ...(test && { test: { safetyShadow: testSafetyShadowAllowed() } }),
+          // 관리자 계정은 생성 기록·이미지를 저장하지 않는다
+          noRecord: isAdminEmail(user.email),
           profile,
           input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace },
           image,

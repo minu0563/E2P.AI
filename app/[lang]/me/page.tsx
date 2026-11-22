@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth";
-import { dayStart, getBalance } from "@/lib/credits";
+import { dayStart, getBalance, grantDailyCredits } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { fmt, fmtDate, fmtNumber, getDictionary, getLocale, type Dictionary, type Locale } from "@/lib/i18n";
 
@@ -41,6 +41,7 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
   if (!user) redirect("/login?next=/me");
 
   const today0 = dayStart();
+  await grantDailyCredits(user.id); // 오늘 무료 지급 (하루 한 번)
   const [balance, consent, today, total, blocked, entries, logs, fees] = await Promise.all([
     getBalance(user.id),
     db.consent.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),

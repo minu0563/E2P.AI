@@ -18,6 +18,7 @@ type Tx = Prisma.TransactionClient;
 
 export const CREDIT_CONFIG = creditConfig as {
   signup: { amount: number; credit_type: CreditType; expires_days: number };
+  daily: { amount: number; credit_type: CreditType };
   monthly_promo_budget: number;
   daily_limit: number;
   cost: { generate: number };
@@ -132,12 +133,12 @@ export async function grantSignupCredits(userId: string) {
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
   const used = await db.creditEntry.aggregate({
-    // 자동 지급(가입 등)만 예산에 센다. 관리자가 직접 준 크레딧(note "admin: …")은 예산과 별개
+    // 가입 지급만 예산에 센다. 관리자가 직접 준 크레딧(note "admin: …")·하루 무료 지급(note "daily")은 예산과 별개
     where: {
       kind: "grant",
       creditType: "promo",
       createdAt: { gte: monthStart },
-      NOT: { note: { startsWith: "admin:" } },
+      NOT: [{ note: { startsWith: "admin:" } }, { note: "daily" }],
     },
     _sum: { amount: true },
   });
@@ -152,6 +153,31 @@ export async function grantSignupCredits(userId: string) {
     expiresAt: new Date(Date.now() + s.expires_days * 86_400_000),
     idempotencyKey: `signup:${userId}`,
     note: "signup",
+  });
+}
+
+/**
+ * 하루 무료 지급. 설정 시간대 자정 기준 하루 한 번, 다음 자정에 소멸한다(쌓이지 않음).
+ * 그날 처음 잔액을 보거나 생성할 때 지급하므로 오지 않는 사용자에게는 지급되지 않는다.
+ * 정지 계정은 지급하지 않는다. 멱등성 키(daily:userId:자정시각)로 하루 한 번만.
+ */
+export async function grantDailyCredits(userId: string, now = new Date()) {
+  const d = CREDIT_CONFIG.daily;
+  if (!d || d.amount <= 0) return false;
+  const user = await db.user.findUnique({ where: { id: userId }, select: { suspendedAt: true } });
+  if (!user || user.suspendedAt) return false;
+  const start = dayStart(now);
+  return grantCredits({
+    userId,
+    amount: d.amount,
+    creditType: d.credit_type,
+    expiresAt: new Date(start.getTime() + 86_400_000),
+    idempotencyKey: `daily:${userId}:${start.getTime()}`,
+    note: "daily",
+  }).catch((e) => {
+    // 동시에 두 번 들어오면 유니크 키 충돌 → 이미 지급된 것
+    if ((e as { code?: string }).code === "P2002") return false;
+    throw e;
   });
 }
 

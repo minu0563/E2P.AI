@@ -180,3 +180,57 @@ run("월 프로모션 예산", async () => {
     expect(await c.grantSignupCredits(newbie)).toBe(true);
   });
 });
+
+run("하루 무료 지급 (DB)", async () => {
+  const { db } = await import("@/lib/db");
+  const c = await import("@/lib/credits");
+  let u = "";
+  let banned = "";
+  const DAY = 86_400_000;
+
+  beforeAll(async () => {
+    u = (await db.user.create({ data: { email: `daily-${Date.now()}@example.test` } })).id;
+    banned = (await db.user.create({ data: { email: `daily-ban-${Date.now()}@example.test`, suspendedAt: new Date() } })).id;
+  });
+  afterAll(async () => {
+    await db.creditEntry.deleteMany({ where: { userId: { in: [u, banned] } } });
+    await db.user.deleteMany({ where: { id: { in: [u, banned] } } });
+  });
+
+  it("하루 한 번만, 다음 자정에 소멸 (쌓이지 않음)", async () => {
+    const amount = c.CREDIT_CONFIG.daily.amount;
+    expect(await c.grantDailyCredits(u)).toBe(true);
+    expect(await c.grantDailyCredits(u)).toBe(false);
+    expect((await c.getBalance(u)).total).toBe(amount);
+    const g = await db.creditEntry.findFirstOrThrow({ where: { userId: u, note: "daily" } });
+    expect(g.expiresAt?.getTime()).toBe(c.dayStart().getTime() + DAY);
+  });
+
+  it("동시에 들어와도 한 번만 지급", async () => {
+    const tomorrow = new Date(c.dayStart().getTime() + DAY + 1000);
+    const r = await Promise.all(Array.from({ length: 5 }, () => c.grantDailyCredits(u, tomorrow)));
+    expect(r.filter(Boolean)).toHaveLength(1);
+  });
+
+  it("정지 계정은 지급하지 않는다", async () => {
+    expect(await c.grantDailyCredits(banned)).toBe(false);
+  });
+
+  it("하루 지급은 가입 지급 예산에 세지 않는다", async () => {
+    await c.grantCredits({
+      userId: u,
+      amount: c.CREDIT_CONFIG.monthly_promo_budget * 2,
+      creditType: "promo",
+      expiresAt: new Date(Date.now() + DAY),
+      idempotencyKey: `daily-budget-test:${u}`,
+      note: "daily",
+    });
+    const fresh = (await db.user.create({ data: { email: `daily-new-${Date.now()}@example.test` } })).id;
+    try {
+      expect(await c.grantSignupCredits(fresh)).toBe(true);
+    } finally {
+      await db.creditEntry.deleteMany({ where: { userId: fresh } });
+      await db.user.delete({ where: { id: fresh } });
+    }
+  });
+});

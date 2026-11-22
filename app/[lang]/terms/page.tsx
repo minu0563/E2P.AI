@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DocPage } from "@/components/doc-page";
+import creditConfig from "@/config/credits.json";
 import { getLocale } from "@/lib/i18n";
 import { LEGAL, SITE } from "@/lib/site";
 
@@ -55,6 +56,7 @@ function Ko() {
         <li>시스템 오류로 만들어지지 않았거나 이용자가 취소한 요청에는 크레딧을 차감하지 않습니다.</li>
         <li>정책에 따라 거절된 요청은 하루 3회까지 크레딧을 차감하지 않습니다. 같은 날 요청 내용 때문에 거절된 요청이 3회를 넘으면, 그 뒤 거절된 요청에는 크레딧이 차감됩니다. 이미지 판정으로 거절된 요청은 횟수와 상관없이 차감하지 않습니다.</li>
         <li>가입·이벤트로 무상 지급된 크레딧에는 유효기간이 있으며, 기간이 지나면 소멸합니다. 무상 크레딧은 환불 대상이 아닙니다.</li>
+        <li>현재 서비스는 유료 판매 없이 무상 크레딧으로만 운영합니다: 가입 시 {creditConfig.signup.amount}크레딧({creditConfig.signup.expires_days}일 유효), 매일 {creditConfig.daily.amount}크레딧(그날 한국 시간 자정에 소멸, 이월되지 않음). 지급량은 공지 후 바뀔 수 있습니다.</li>
         <li>유료 크레딧의 환불은 <Link href="/refund">환불 정책</Link>을 따릅니다.</li>
         <li>하루 이용 건수 등 이용 한도를 둘 수 있습니다.</li>
       </ul>
@@ -165,6 +167,7 @@ function En() {
         <li>Requests that fail due to system errors or that you cancel do not use credits.</li>
         <li>Up to 3 requests declined by our policy per day do not use credits. After more than 3 requests are declined in a day because of what was requested, further declined requests use a credit. Requests declined because of the image never use credits.</li>
         <li>Free credits (sign-up, promotions) expire after the stated period and are not refundable.</li>
+        <li>The Service currently runs on free credits only, with no paid plans: {creditConfig.signup.amount} credits on sign-up (valid for {creditConfig.signup.expires_days} days) and {creditConfig.daily.amount} credits each day (expiring at midnight Korea time, not carried over). Amounts may change after notice.</li>
         <li>Paid credits are refunded according to our <Link href="/refund">Refund Policy</Link>.</li>
         <li>Daily usage limits may apply.</li>
       </ul>

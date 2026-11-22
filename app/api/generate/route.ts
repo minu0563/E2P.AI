@@ -6,7 +6,7 @@ import { DEFAULT_PROFILE, FIELD_KEYS, PACES, getProfile, type Pace } from "@/lib
 import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
 import { randomUUID } from "node:crypto";
 import { getCurrentUser, hasCurrentConsent, hasSessionCookie } from "@/lib/auth";
-import { CREDIT_CONFIG, reserveCredits } from "@/lib/credits";
+import { CREDIT_CONFIG, grantDailyCredits, reserveCredits } from "@/lib/credits";
 import type { HistoryInput } from "@/lib/history";
 import { runGeneration } from "@/lib/generate";
 import { GENERATION_CONFIG, RATE_CONFIG, activeCount, claimSlot, clientIp, hit, releaseSlot } from "@/lib/limits";
@@ -104,6 +104,8 @@ export async function POST(request: Request) {
 
   // 크레딧 예약. 테스트 계정은 예약하지 않는다 (예약이 없으면 확정·반환은 아무것도 하지 않음)
   if (!test) {
+    // 오늘 무료 지급이 아직 없으면 먼저 지급 (하루 한 번)
+    await grantDailyCredits(user.id);
     const reserved = await reserveCredits(user.id, requestId, CREDIT_CONFIG.cost.generate);
     if (!reserved.ok) {
       await releaseSlot(user.id, requestId);

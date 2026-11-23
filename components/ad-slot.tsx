@@ -32,7 +32,17 @@ export function AdSlot({ placement, className = "" }: { placement: Placement; cl
     }
   }, [on]);
 
-  if (!on) return null;
+  if (!on) {
+    // 개발 화면에서만: 광고가 들어갈 자리를 점선 상자로 보여 준다 (배포 빌드에는 나오지 않음)
+    if (process.env.NODE_ENV !== "development") return null;
+    return (
+      <div className={`my-10 ${className}`}>
+        <div className="flex h-[120px] items-center justify-center border-2 border-dashed border-accent/60 font-mono text-xs text-muted">
+          광고 자리 (개발 미리보기) · {placement} · 반응형, 보통 가로 100% × 높이 90~280px
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`my-10 ${className}`} aria-label="advertisement">
       <Script

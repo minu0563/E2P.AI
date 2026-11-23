@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdSlot } from "@/components/ad-slot";
 import { DocPage } from "@/components/doc-page";
 import { getLocale } from "@/lib/i18n";
 import { LEGAL } from "@/lib/site";
@@ -48,6 +49,7 @@ function Ko() {
 
       <h2>오차단 이의 제기</h2>
       <p>정상적인 요청이 거절되었다면 <Link href="/contact">문의</Link>로 알려 주세요. 검토 후 기준 개선에 반영합니다.</p>
+      <AdSlot placement="policy" />
     </DocPage>
   );
 }
@@ -88,6 +90,7 @@ function En() {
 
       <h2>Appeals</h2>
       <p>If a legitimate request was declined, tell us via <Link href="/contact">Contact</Link>. We review appeals and use them to improve our rules.</p>
+      <AdSlot placement="policy" />
     </DocPage>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdSlot } from "@/components/ad-slot";
 import { DocPage } from "@/components/doc-page";
 import { getLocale } from "@/lib/i18n";
 import { LEGAL, SITE } from "@/lib/site";
@@ -50,6 +51,7 @@ function Ko() {
         환불은 결제 수단에 따라 3~7영업일이 걸릴 수 있습니다.
       </p>
       <p className="mt-6 text-xs">이 정책은 「전자상거래 등에서의 소비자보호에 관한 법률」 등 관련 법령보다 이용자에게 불리하게 적용되지 않습니다.</p>
+      <AdSlot placement="refund" />
     </DocPage>
   );
 }
@@ -91,6 +93,7 @@ function En() {
         reason. We reply within 3 business days; refunds take 3–7 business days depending on the payment method.
       </p>
       <p className="mt-6 text-xs">This policy does not limit any rights you have under applicable consumer protection law.</p>
+      <AdSlot placement="refund" />
     </DocPage>
   );
 }

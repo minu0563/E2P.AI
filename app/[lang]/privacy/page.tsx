@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdSlot } from "@/components/ad-slot";
 import { DocPage } from "@/components/doc-page";
 import { getLocale } from "@/lib/i18n";
 import { LEGAL, SITE } from "@/lib/site";
@@ -108,10 +109,10 @@ function Ko() {
       <ul>
         <li>필수 쿠키: 로그인 유지를 위한 세션 쿠키와 언어 설정 쿠키를 사용합니다. 브라우저 설정에서 거부할 수 있으나, 이 경우 로그인이 필요한 기능을 이용할 수 없습니다.</li>
         <li>
-          광고: 서비스는 첫 화면·가이드·자주 묻는 질문 페이지와 생성기 화면 하단에 Google LLC의 애드센스 광고를 게재할 수 있습니다. 광고가 게재되는 페이지에서는 Google과
+          광고: 서비스는 가이드·자주 묻는 질문·이용약관 등 안내 문서 페이지와 생성기 화면 하단에 Google LLC의 애드센스 광고를 게재할 수 있습니다. 광고가 게재되는 페이지에서는 Google과
           그 파트너가 쿠키나 기기 식별자로 방문 기록 등 행태정보를 수집해 광고를 보여주거나 효과를 측정할 수 있습니다.
         </li>
-        <li>로그인·내 계정·문의 화면에는 광고를 넣지 않습니다. 업로드한 이미지와 요청·결과 문장은 광고 업체에 보내지 않습니다.</li>
+        <li>첫 화면·로그인·내 계정·문의 화면에는 광고를 넣지 않습니다. 업로드한 이미지와 요청·결과 문장은 광고 업체에 보내지 않습니다.</li>
         <li>
           맞춤 광고는 <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">Google 광고 설정</a>에서 끄거나, 브라우저에서 제3자
           쿠키를 차단해 거부할 수 있습니다. 유럽경제지역·영국·스위스 방문자에게는 광고 쿠키를 쓰기 전에 동의를 받습니다.
@@ -133,6 +134,7 @@ function Ko() {
 
       <h2>11. 방침 변경</h2>
       <p>이 방침은 {LEGAL.effective}부터 적용되며, 바뀌는 경우 시행 7일 전부터 공지합니다.</p>
+      <AdSlot placement="privacy" />
     </DocPage>
   );
 }
@@ -231,10 +233,10 @@ function En() {
       <ul>
         <li>Essential cookies: a session cookie to keep you signed in and a language cookie. You can block them in your browser, but then you cannot use features that need sign-in.</li>
         <li>
-          Advertising: we may show Google AdSense ads (Google LLC) on the home, guide and FAQ pages and at the bottom of the generator page. On those pages, Google and its partners may use
+          Advertising: we may show Google AdSense ads (Google LLC) at the bottom of our information pages (guide, FAQ, terms and policies) and of the generator page. On those pages, Google and its partners may use
           cookies or device identifiers to show ads and measure their performance.
         </li>
-        <li>We do not show ads on the sign-in, account or contact pages. We never send your uploaded images, requests or results to ad providers.</li>
+        <li>We do not show ads on the home, sign-in, account or contact pages. We never send your uploaded images, requests or results to ad providers.</li>
         <li>
           You can turn off personalized ads in <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">Google Ad Settings</a> or block
           third-party cookies in your browser. Visitors from the EEA, the UK and Switzerland are asked for consent before advertising cookies are used.
@@ -248,6 +250,7 @@ function En() {
       <p>Privacy officer: {LEGAL.privacyOfficer} · {SITE.contactEmail}</p>
 
       <p className="mt-8 text-xs">If the Korean and English versions differ, the Korean version prevails.</p>
+      <AdSlot placement="privacy" />
     </DocPage>
   );
 }

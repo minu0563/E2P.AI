@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdSlot } from "@/components/ad-slot";
 import { DocPage } from "@/components/doc-page";
 import creditConfig from "@/config/credits.json";
 import { getLocale } from "@/lib/i18n";
@@ -127,6 +128,7 @@ function Ko() {
 
       <h2>부칙</h2>
       <p>이 약관은 {LEGAL.effective}부터 시행합니다.</p>
+      <AdSlot placement="terms" />
     </DocPage>
   );
 }
@@ -238,6 +240,7 @@ function En() {
       <p>These terms are governed by the laws of the Republic of Korea. Mandatory consumer protections of your country of residence still apply.</p>
 
       <p className="mt-8 text-xs">If the Korean and English versions differ, the Korean version prevails.</p>
+      <AdSlot placement="terms" />
     </DocPage>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { MODELS, SHOWCASE } from "@/lib/showcase";
+import { AdSlot } from "@/components/ad-slot";
 import { SITE } from "@/lib/site";
 import "./home.css";
 
@@ -160,6 +161,10 @@ export default async function Home() {
       </section>
 
       {/* 마무리 */}
+      <div className="mx-auto w-full max-w-6xl px-4">
+        <AdSlot placement="home" />
+      </div>
+
       <section className="overflow-hidden bg-text text-bg">
         <div className="mx-auto w-full max-w-6xl px-4 pt-20 pb-14">
           <p aria-hidden className="text-[26vw] leading-[0.85] font-bold tracking-[-0.06em] sm:text-[13rem]">

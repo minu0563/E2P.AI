@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ad-slot";
 import type { Metadata } from "next";
 import { DocPage } from "@/components/doc-page";
 import creditConfig from "@/config/credits.json";
@@ -50,6 +51,7 @@ export default async function FaqPage() {
           </details>
         ))}
       </div>
+      <AdSlot placement="faq" />
     </DocPage>
   );
 }

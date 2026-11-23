@@ -1,0 +1,10 @@
+{
+  "enabled": false,
+  "client": "",
+  "slots": {
+    "home": "",
+    "guide": "",
+    "faq": ""
+  },
+  "_comment": "Google 애드센스. 승인 후 client(ca-pub-…), 광고 단위별 slot 번호를 넣고 enabled=true → 커밋·푸시. 공개값이라 여기 둬도 된다. 광고는 랜딩·가이드·FAQ에만(생성기·결과·로그인 화면 금지, CLAUDE.md 13장). 애드센스 대시보드에서 '자동 광고'는 꺼 둘 것(켜면 구글이 아무 데나 광고를 넣는다). 유럽·영국 동의창은 애드센스 '개인 정보 보호 및 메시지'에서 Google CMP를 켜면 같은 스크립트로 뜬다. client가 있으면 /ads.txt가 자동으로 나온다."
+}

@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ad-slot";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DocPage } from "@/components/doc-page";
@@ -99,6 +100,8 @@ export default async function GuidePage() {
           </div>
         );
       })}
+
+      <AdSlot placement="guide" />
 
       <p className="mt-8">
         <Link href="/generate">{ko ? "생성기에서 직접 만들어 보기 →" : "Try it in the generator →"}</Link>

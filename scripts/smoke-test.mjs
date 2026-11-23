@@ -36,7 +36,11 @@ const checks = [
   ["/_headers 비공개", async () => (await get("/_headers")).status === 404],
   ["robots.txt에 운영 사이트맵", async () => (await (await get("/robots.txt")).text()).includes(`https://${host}/sitemap.xml`)],
   ["sitemap.xml에 운영 주소", async () => { const r = await get("/sitemap.xml"); return r.status === 200 && (await r.text()).includes(`https://${host}/`); }],
-  ["/admin 404 (비로그인)", async () => (await get("/admin")).status === 404],
+  // 운영은 Cloudflare Access가 먼저 막는다(로그인 화면으로 302). Access가 없으면 앱이 404
+  ["/admin 잠김 (비로그인)", async () => {
+    const r = await fetch(base + "/admin", { redirect: "manual" });
+    return r.status === 404 || (r.status === 302 && /\.cloudflareaccess\.com\//.test(r.headers.get("location") || ""));
+  }],
   ["/api/history 401 (비로그인)", async () => (await get("/api/history")).status === 401],
 ];
 

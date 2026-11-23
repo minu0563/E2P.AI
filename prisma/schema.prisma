@@ -22,6 +22,9 @@ model User {
   restrictedUntil DateTime?
   /// 탈퇴 시각 (행은 남기고 로그인·생성 불가. 보관 기간 뒤 정리 작업이 파기 — lib/retention.ts)
   withdrawnAt     DateTime?
+  /// 첫 생성 전 이용약관·허용 정책을 확인한 약관 버전과 시각 (TERMS_VERSION과 다르면 다시 확인)
+  policyAckVersion String?
+  policyAckAt      DateTime?
   createdAt  DateTime  @default(now())
   sessions   Session[]
   consents   Consent[]

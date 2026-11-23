@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdSlot } from "@/components/ad-slot";
 import appConfig from "@/config/app.json";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { DEFAULT_PROFILE, getProfile } from "@/lib/profile";
@@ -35,6 +36,8 @@ export default async function GeneratePage() {
         tr={t.result}
         te={t.errors}
       />
+      {/* 무료 이용 광고 1칸: 버튼·결과에서 떨어진 맨 아래. 결제 도입 후 유료 사용자는 숨긴다 */}
+      <AdSlot placement="generate" className="mt-16 border-t border-border pt-6" />
     </main>
   );
 }

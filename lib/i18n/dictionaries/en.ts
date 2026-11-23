@@ -130,6 +130,22 @@ const en: Dictionary = {
     },
   },
   generator: {
+    ack: {
+      title: "Before your first generation",
+      points: [
+        "Only upload photos of yourself or of people who have agreed to it.",
+        "We do not process people who look under 18, sexual content, or requests that name a specific real person (someone you know, a celebrity, etc.).",
+        "Repeated requests that break our policy can lead to limits on generation or account suspension.",
+        "Uploaded images and requests are stored encrypted for a set period to prevent misuse.",
+      ],
+      read: "Read in full:",
+      terms: "Terms of Service",
+      policy: "Acceptable Use Policy",
+      confirm: "I have read the points above, the Terms and the Acceptable Use Policy.",
+      button: "Confirm and generate",
+      cancel: "Close",
+      error: "Could not save. Please try again in a moment.",
+    },
     eyebrow: "MiniMax H3 · Image → Video",
     title: "Prompt generator",
     lead: "Image + one line → video prompt",
@@ -233,6 +249,7 @@ const en: Dictionary = {
     QUEUE_FULL: "We're busy right now. Please try again in a moment.",
     PAUSED: "Generation is paused for now. Please try again later.",
     RESTRICTED: "Generation is temporarily paused because several requests were declined. If you think this is a mistake, please contact us.",
+    POLICY_ACK_REQUIRED: "Please review the Terms and the Acceptable Use Policy before your first generation.",
   },
   me: {
     title: "My account",

@@ -14,7 +14,8 @@ export type BlockCode =
   | "BUSY"
   | "QUEUE_FULL"
   | "PAUSED"
-  | "RESTRICTED";
+  | "RESTRICTED"
+  | "POLICY_ACK_REQUIRED";
 
 /** 사용자에게는 카테고리 수준만. 키워드·라벨·점수는 노출하지 않는다. */
 export const BLOCK_MESSAGES: Record<BlockCode, string> = {
@@ -34,6 +35,7 @@ export const BLOCK_MESSAGES: Record<BlockCode, string> = {
   QUEUE_FULL: "지금 요청이 많습니다. 잠시 후 다시 시도해 주세요.",
   PAUSED: "지금은 생성 기능을 잠시 쉬고 있습니다. 나중에 다시 시도해 주세요.",
   RESTRICTED: "정책에 맞지 않는 요청이 반복되어 생성이 일시적으로 제한되었습니다. 잘못된 제한이라면 문의해 주세요.",
+  POLICY_ACK_REQUIRED: "처음 생성하기 전에 이용약관과 허용 가능 이용 정책을 확인해 주세요.",
 };
 
 export const NEUTRALIZED_NOTICE = "일부 표현이 조정되었습니다.";

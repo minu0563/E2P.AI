@@ -40,6 +40,8 @@ export async function POST(request: Request) {
   if (!(await hasCurrentConsent(user.id))) return fail("LOGIN_REQUIRED", 401);
   // 연속 차단으로 일시 제한된 계정 (lib/abuse.ts)
   if (isRestricted(user)) return fail("RESTRICTED", 429);
+  // 첫 생성 전(약관 버전이 바뀐 뒤 포함) 이용약관·허용 정책 확인. 크레딧 예약 전이라 이 거절은 비용이 없다
+  if (user.policyAckVersion !== process.env.TERMS_VERSION) return fail("POLICY_ACK_REQUIRED", 428);
   if (!test && !(await hit(`user:${user.id}`, RATE_CONFIG.user_per_minute, 60))) return fail("RATE_LIMITED", 429);
 
   let form: FormData;

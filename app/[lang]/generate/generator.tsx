@@ -63,6 +63,8 @@ export function Generator({
   const [loadedNote, setLoadedNote] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  // 첫 생성 전 이용약관·허용 정책 확인 창 (서버가 POLICY_ACK_REQUIRED로 알려 준다)
+  const [ackOpen, setAckOpen] = useState(false);
 
   /** 취소: 연결을 끊으면 서버가 남은 처리를 건너뛰고 크레딧을 반환한다 */
   function cancel() {
@@ -170,6 +172,10 @@ export function Generator({
         data = done as Result;
       } else {
         data = (await res.json()) as Result;
+      }
+      if (!data.ok && data.code === "POLICY_ACK_REQUIRED") {
+        setAckOpen(true);
+        return;
       }
       // 서버 메시지 대신 현재 언어의 문구로
       if (!data.ok && te[data.code]) data.message = te[data.code];
@@ -418,6 +424,76 @@ export function Generator({
       </section>
 
       <ResultPanel result={result} loading={loading} elapsed={elapsed} progress={progress} onRegenerate={submit} canRegenerate={!!file} t={tr} />
+      {ackOpen && (
+        <PolicyAck
+          t={t.ack}
+          onClose={() => setAckOpen(false)}
+          onDone={() => {
+            setAckOpen(false);
+            submit();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** 첫 생성 전 확인 창: 핵심 금지 사항 + 약관·정책 링크 + 확인 체크 → 기록 후 원래 요청을 다시 보낸다 */
+function PolicyAck({ t, onClose, onDone }: { t: Dictionary["generator"]["ack"]; onClose: () => void; onDone: () => void }) {
+  const [checked, setChecked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  async function confirm() {
+    setBusy(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/policy-ack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      if (!res.ok) throw new Error();
+      onDone();
+    } catch {
+      setError(true);
+      setBusy(false);
+    }
+  }
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="ack-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-line bg-bg p-5 text-sm">
+        <h2 id="ack-title" className="text-lg font-semibold">
+          {t.title}
+        </h2>
+        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-muted">
+          {t.points.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs text-muted">
+          {t.read}{" "}
+          <a href="/terms" target="_blank" className="underline">
+            {t.terms}
+          </a>
+          {" · "}
+          <a href="/policy" target="_blank" className="underline">
+            {t.policy}
+          </a>
+        </p>
+        <label className="mt-4 flex cursor-pointer items-start gap-2">
+          <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="mt-0.5 accent-accent" />
+          <span>{t.confirm}</span>
+        </label>
+        {error && <p className="mt-2 text-xs text-danger">{t.error}</p>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onClose} className="btn btn-ghost px-3 py-1.5">
+            {t.cancel}
+          </button>
+          <button onClick={confirm} disabled={!checked || busy} className="btn btn-primary px-3 py-1.5 disabled:opacity-50">
+            {t.button}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

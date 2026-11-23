@@ -19,7 +19,7 @@ export default async function RefundPage() {
 
 function Ko() {
   return (
-    <DocPage title="환불 정책" updated={LEGAL.effective} draft>
+    <DocPage title="환불 정책" updated={LEGAL.effective}>
       <p>현재 유료 상품은 판매하지 않습니다. 유료 크레딧·구독을 도입하면 아래 기준을 적용합니다.</p>
 
       <h2>1. 자동 반환</h2>
@@ -62,7 +62,7 @@ function Ko() {
 
 function En() {
   return (
-    <DocPage title="Refund Policy" updated={LEGAL.effective} draft>
+    <DocPage title="Refund Policy" updated={LEGAL.effective}>
       <p>We do not sell paid plans yet. When paid credits or subscriptions are introduced, the following applies.</p>
 
       <h2>1. Automatic returns</h2>

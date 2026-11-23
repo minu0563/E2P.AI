@@ -5,7 +5,7 @@ export const SITE = {
   expansion: "Everything to Prompt",
   tagline: "Turn anything into a prompt.",
   slogan: "One place. Every creative prompt.",
-  contactEmail: "contact@example.com", // TODO: 실제 문의 주소
+  contactEmail: "contact@e2pai.app", // Cloudflare Email Routing → 운영자 메일함
 };
 
 /** 법률 문서에 들어갈 운영자 정보. TODO(출시 전): 사업자 등록 후 실제 값으로 */

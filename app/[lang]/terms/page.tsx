@@ -20,7 +20,7 @@ export default async function TermsPage() {
 
 function Ko() {
   return (
-    <DocPage title="이용약관" updated={LEGAL.effective} draft>
+    <DocPage title="이용약관" updated={LEGAL.effective}>
       <h2>제1조 (목적)</h2>
       <p>
         이 약관은 {LEGAL.operator}(이하 ‘회사’)가 제공하는 {SITE.name}(이하 ‘서비스’)의 이용 조건과 절차, 회사와 이용자의
@@ -139,7 +139,7 @@ function Ko() {
 
 function En() {
   return (
-    <DocPage title="Terms of Service" updated={LEGAL.effective} draft>
+    <DocPage title="Terms of Service" updated={LEGAL.effective}>
       <h2>1. About these terms</h2>
       <p>
         These terms govern your use of {SITE.name} (the “Service”), operated by {LEGAL.operatorEn} (“we”, “us”). By

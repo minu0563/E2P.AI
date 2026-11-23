@@ -18,7 +18,7 @@ export default async function PrivacyPage() {
 
 function Ko() {
   return (
-    <DocPage title="개인정보처리방침" updated={LEGAL.effective} draft>
+    <DocPage title="개인정보처리방침" updated={LEGAL.effective}>
       <p>
         {LEGAL.operator}(이하 ‘회사’)는 「개인정보 보호법」에 따라 {SITE.name} 이용자의 개인정보를 보호하고, 관련 고충을 신속하게
         처리하기 위해 다음과 같이 개인정보처리방침을 둡니다.
@@ -145,7 +145,7 @@ function Ko() {
 
 function En() {
   return (
-    <DocPage title="Privacy Policy" updated={LEGAL.effective} draft>
+    <DocPage title="Privacy Policy" updated={LEGAL.effective}>
       <p>
         This policy explains how {LEGAL.operatorEn} (“we”) handles personal information when you use {SITE.name}.
       </p>

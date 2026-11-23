@@ -323,7 +323,6 @@ const en: Dictionary = {
   },
   doc: {
     updated: "Last updated {date}",
-    draft: "Draft. Not yet reviewed by legal counsel and subject to change.",
   },
 };
 

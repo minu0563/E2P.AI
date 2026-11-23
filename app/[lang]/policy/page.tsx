@@ -22,7 +22,6 @@ function Ko() {
     <DocPage
       title="허용 가능 이용 정책"
       updated={LEGAL.effective}
-      draft
       lead="안전한 이용을 위해 아래 기준으로 요청을 처리합니다. 이 기준은 서버에서 자동으로 적용됩니다."
     >
       <h2>처리하지 않는 요청</h2>
@@ -63,7 +62,6 @@ function En() {
     <DocPage
       title="Acceptable Use Policy"
       updated={LEGAL.effective}
-      draft
       lead="To keep the Service safe, requests are handled by the rules below. They are applied automatically on our servers."
     >
       <h2>Requests we decline</h2>

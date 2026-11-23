@@ -47,8 +47,16 @@ export function parseJpeg(input: Uint8Array) {
       width = (input[m + 6] << 8) | input[m + 7];
     }
     if (marker === 0xda) {
-      // 스캔 시작: 이후는 압축 데이터(끝까지 그대로)
-      out.push(input.subarray(start));
+      // 스캔 시작: 이후는 압축 데이터. 이미지 끝(EOI, FF D9)까지만 남기고 그 뒤에 덧붙은 바이트(숨긴 파일·메타데이터)는 버린다.
+      // 압축 데이터 안의 FF는 FF 00으로 바뀌어 있으므로 FF D9는 이미지 끝에서만 나온다
+      let eoi = -1;
+      for (let k = end; k + 1 < input.length; k++) {
+        if (input[k] === 0xff && input[k + 1] === 0xd9) {
+          eoi = k;
+          break;
+        }
+      }
+      out.push(eoi >= 0 ? input.subarray(start, eoi + 2) : input.subarray(start));
       i = input.length;
       break;
     }

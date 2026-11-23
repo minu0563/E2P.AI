@@ -26,6 +26,20 @@ describe("업로드 이미지 서버 검증 (sharp 없이)", async () => {
     expect([meta.width, meta.height, meta.exif]).toEqual([400, 300, undefined]);
   });
 
+  it("이미지 끝(EOI) 뒤에 덧붙인 바이트는 버린다 (숨긴 파일·해시 바꾸기)", async () => {
+    const src = await jpeg(200, 150);
+    const tail = new TextEncoder().encode("PK\u0003\u0004HIDDEN-PAYLOAD");
+    const padded = new Uint8Array(src.length + tail.length);
+    padded.set(src);
+    padded.set(tail, src.length);
+    const a = await validateImage(src, 1024, 3_000_000);
+    const b = await validateImage(padded, 1024, 3_000_000);
+    expect(Buffer.from(b.base64, "base64").includes("HIDDEN-PAYLOAD")).toBe(false);
+    expect(b.hash).toBe(a.hash);
+    const meta = await sharp(Buffer.from(b.base64, "base64")).metadata();
+    expect([meta.width, meta.height]).toEqual([200, 150]);
+  });
+
   it("긴 변이 한도를 넘으면 거부 (브라우저 우회)", async () => {
     await expect(validateImage(await jpeg(3000, 200), 1024, 3_000_000)).rejects.toBeInstanceOf(ImageError);
   });

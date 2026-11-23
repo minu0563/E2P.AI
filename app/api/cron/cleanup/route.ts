@@ -7,8 +7,10 @@ import { purgeExpired } from "@/lib/retention";
  */
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;
-  const given = request.headers.get("x-cron-secret") ?? "";
-  if (!secret || given.length !== secret.length || !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) {
+  // 바이트 길이로 비교 (글자 수가 같아도 바이트 수가 다르면 timingSafeEqual이 예외를 던져 500이 된다)
+  const a = Buffer.from(request.headers.get("x-cron-secret") ?? "");
+  const b = Buffer.from(secret ?? "");
+  if (!secret || a.length !== b.length || !timingSafeEqual(a, b)) {
     return new Response(null, { status: 404 });
   }
   const result = await purgeExpired();

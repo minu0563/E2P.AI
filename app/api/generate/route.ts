@@ -16,6 +16,8 @@ import { isTestAccount, testSafetyShadowAllowed } from "@/lib/test-accounts";
 import { isAdminEmail } from "@/system/admin/guard";
 
 const { limits, features } = appConfig;
+/** 이미지 외 폼 필드(요청·항목·설정값)와 multipart 경계 여유분 */
+const MAX_FORM_OVERHEAD = 64 * 1024;
 
 const bad = (message: string, status = 400) =>
   Response.json({ ok: false, code: "INVALID_INPUT", message }, { status });
@@ -43,6 +45,13 @@ export async function POST(request: Request) {
   // 첫 생성 전(약관 버전이 바뀐 뒤 포함) 이용약관·허용 정책 확인. 크레딧 예약 전이라 이 거절은 비용이 없다
   if (user.policyAckVersion !== process.env.TERMS_VERSION) return fail("POLICY_ACK_REQUIRED", 428);
   if (!test && !(await hit(`user:${user.id}`, RATE_CONFIG.user_per_minute, 60))) return fail("RATE_LIMITED", 429);
+
+  // 본문을 메모리에 올리기 전에 크기 확인 (formData()는 본문 전체를 읽는다). 이미지 상한 + 글·필드 여유분
+  // (헤더가 없는 경우는 막지 않는다 — 브라우저는 FormData 길이를 항상 보내고, 프록시 구간에서 빠질 수 있어 정상 요청을 막을 위험이 더 크다)
+  const declared = Number(request.headers.get("content-length"));
+  if (declared > limits.max_upload_bytes + MAX_FORM_OVERHEAD) {
+    return bad("이미지 파일이 너무 큽니다.", 413);
+  }
 
   let form: FormData;
   try {

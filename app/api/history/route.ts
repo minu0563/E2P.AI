@@ -23,6 +23,8 @@ export async function GET(request: Request) {
     prompt: r.prompt,
     input: r.input as HistoryInput | null,
   }));
-  if (id && !items.length) return Response.json({ ok: false, code: "NOT_FOUND" }, { status: 404 });
-  return Response.json({ ok: true, items });
+  // 개인 기록: 브라우저·중간 캐시에 남기지 않는다
+  const headers = { "Cache-Control": "private, no-store" };
+  if (id && !items.length) return Response.json({ ok: false, code: "NOT_FOUND" }, { status: 404, headers });
+  return Response.json({ ok: true, items }, { headers });
 }

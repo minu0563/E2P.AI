@@ -361,7 +361,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         profile: profile.profile,
         inputMode: input.inputMode,
         keyMode,
-        requestText: input.request,
+        // 요청 원문은 남기지 않는다 (DB 생성 기록에만 있고, 플랫폼 로그에는 보관 기간·접근 통제가 따로 없다)
         stages,
         totalMs,
         credit_cost: 1,

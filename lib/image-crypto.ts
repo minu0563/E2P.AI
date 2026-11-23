@@ -5,6 +5,8 @@
  * - 형식: "E2PI"(4) | 키 버전(1) | IV(12) | 암호문+인증 태그
  * 키를 바꿀 때는 버전을 올리고 옛 키를 남겨 두면 옛 파일도 열린다 (보관 기간이 짧아 30일 뒤엔 옛 키를 지워도 된다).
  */
+// 비공개(시스템 프롬프트·규칙·키워드·키 처리): 브라우저 번들에 들어가면 빌드가 실패하게 한다
+import "server-only";
 const MAGIC = new TextEncoder().encode("E2PI");
 const HEADER = MAGIC.length + 1 + 12;
 

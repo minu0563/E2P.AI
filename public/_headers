@@ -1,0 +1,7 @@
+# Cloudflare Workers 정적 파일(이미지·JS·CSS) 응답 헤더. 앱 페이지·API의 헤더는 next.config.ts에서 붙인다.
+# 이 파일은 배포 때 wrangler가 읽고 정적 파일로는 올리지 않는다 (공개되지 않음).
+/*
+  X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY

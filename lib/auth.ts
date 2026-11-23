@@ -81,11 +81,25 @@ export async function getCurrentUser() {
   return session.user;
 }
 
+/**
+ * 세션 쿠키 지우기. `__Host-` 쿠키는 Secure·Path=/가 붙은 Set-Cookie만 브라우저가 받아들이므로
+ * 속성 없이 지우면(cookies().delete(name)) 무시되어 쿠키가 남는다 → 만들 때와 같은 속성으로 지운다.
+ */
+async function clearSessionCookie() {
+  (await cookies()).delete({
+    name: SESSION_COOKIE,
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+}
+
 export async function endSession() {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (token) await db.session.deleteMany({ where: { tokenHash: hash(token) } });
-  jar.delete(SESSION_COOKIE);
+  await clearSessionCookie();
 }
 
 /**
@@ -97,7 +111,7 @@ export async function withdrawUser(userId: string) {
     db.user.update({ where: { id: userId }, data: { withdrawnAt: new Date() } }),
     db.session.deleteMany({ where: { userId } }),
   ]);
-  (await cookies()).delete(SESSION_COOKIE);
+  await clearSessionCookie();
 }
 
 /** 현재 약관 버전 동의 기록 (동의 시각·버전) */

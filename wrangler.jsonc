@@ -1,7 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // E2P.AI (Cloudflare Workers + OpenNext). 비밀값은 여기 넣지 않는다 → `wrangler secret put` / 로컬은 .dev.vars
-  "name": "e2p-ai",
+  // 맨 위 설정은 로컬 미리보기용. 이름을 운영(e2p-ai)과 다르게 둬서 -e 없이 배포해도 운영을 덮어쓰지 않게 한다
+  "name": "e2p-ai-local",
   // OpenNext 앱 + 정리 작업(Cron). worker.mjs가 .open-next/worker.js를 감싼다
   "main": "worker.mjs",
   // 정리 작업: 매일 한국 03:00 (UTC 18:00). /api/cron/cleanup, 비밀 값 CRON_SECRET
@@ -10,7 +11,7 @@
   // nodejs_compat: pg·node:crypto 등. global_fetch_strictly_public: 서버가 사설 IP로 fetch 못 하게 (SSRF 방지)
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
-  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai" }],
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai-local" }],
   "observability": { "enabled": true },
   // Workers AI (API 키 없음, 이 Worker 안에서만 호출 가능)
   "ai": { "binding": "AI" },
@@ -23,15 +24,45 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      // 8단계에서 `wrangler hyperdrive create`로 만든 ID로 교체
+      // 로컬 미리보기는 아래 localConnectionString을 쓴다 (이 ID는 쓰이지 않음)
       "id": "00000000000000000000000000000000",
       // 로컬 미리보기는 Docker Postgres 직접 연결 (docker-compose.yml과 같은 개발용 값)
       "localConnectionString": "postgresql://prompt_app:prompt_app@localhost:5432/prompt_app"
     }
   ],
   "env": {
+    // 운영: https://e2pai.app. 배포는 GitHub Actions "Deploy production"(수동 실행 + 승인)으로만.
+    // 맨 위 설정은 로컬 미리보기용이라 운영은 여기 따로 적는다 (env 안의 vars·바인딩은 상속되지 않음)
+    // TODO_PROD_ 값이 남아 있으면 운영 배포 워크플로가 멈춘다 → system/docs/PRODUCTION.md
+    "production": {
+      "name": "e2p-ai",
+      // workers.dev·미리보기 주소를 끈다 (운영은 e2pai.app으로만 접속)
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [{ "pattern": "e2pai.app", "custom_domain": true }],
+      "triggers": { "crons": ["0 18 * * *"] },
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai" }],
+      "vars": {
+        "TERMS_VERSION": "2026-11-17",
+        "APP_URL": "https://e2pai.app",
+        // 운영 전용 Turnstile 위젯의 사이트 키(공개값). 비밀 키 TURNSTILE_SECRET은 Workers Secrets
+        "TURNSTILE_SITE_KEY": "TODO_PROD_TURNSTILE_SITE_KEY",
+        "INFERENCE_PROVIDER": "workers-ai",
+        "MODEL": "@cf/google/gemma-4-26b-a4b-it"
+      },
+      "ai": { "binding": "AI" },
+      // 비공개 버킷(APAC), 수명 규칙: recent/ 3일, blocked/ 30일, quarantine/ 30일. 키는 secret IMAGE_KEY(스테이징과 다른 값)
+      "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "e2p-images" }],
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          // 운영 Neon 직접 연결 주소로 `wrangler hyperdrive create e2p-prod` 후 ID 교체
+          "id": "TODO_PROD_HYPERDRIVE_ID"
+        }
+      ]
+    },
     // 스테이징: 운영과 완전히 분리된 Worker·DB. https://e2p-ai-staging.e2p.workers.dev
-    // env 안의 vars·바인딩은 위(운영)에서 상속되지 않으므로 모두 다시 적는다
+    // env 안의 vars·바인딩은 위에서 상속되지 않으므로 모두 다시 적는다
     "staging": {
       "name": "e2p-ai-staging",
       "triggers": { "crons": ["0 18 * * *"] },

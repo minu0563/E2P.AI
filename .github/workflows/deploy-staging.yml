@@ -1,5 +1,5 @@
 # 스테이징 자동 배포: cloudflare 브랜치에 push하면 리눅스에서 테스트 → 빌드 → 크기 검사 → 배포
-# 운영 배포는 별도 워크플로(승인 필요)로 나중에 만든다.
+# 운영 배포는 deploy-production.yml (수동 실행 + 승인)
 name: Deploy staging
 
 on:

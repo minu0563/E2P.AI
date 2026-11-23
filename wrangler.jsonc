@@ -46,7 +46,7 @@
         "TERMS_VERSION": "2026-11-17",
         "APP_URL": "https://e2pai.app",
         // 운영 전용 Turnstile 위젯의 사이트 키(공개값). 비밀 키 TURNSTILE_SECRET은 Workers Secrets
-        "TURNSTILE_SITE_KEY": "TODO_PROD_TURNSTILE_SITE_KEY",
+        "TURNSTILE_SITE_KEY": "0x4AAAAAAGPBkbplyKiCQhKX",
         "INFERENCE_PROVIDER": "workers-ai",
         "MODEL": "@cf/google/gemma-4-26b-a4b-it"
       },
@@ -56,8 +56,8 @@
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          // 운영 Neon 직접 연결 주소로 `wrangler hyperdrive create e2p-prod` 후 ID 교체
-          "id": "TODO_PROD_HYPERDRIVE_ID"
+          // Hyperdrive e2p-prod → Neon e2p-prod(싱가포르, 직접 연결). 캐싱 끔 (로그아웃·정지가 바로 반영되게)
+          "id": "2129e0c2360d4334906d5e141345aa7d"
         }
       ]
     },

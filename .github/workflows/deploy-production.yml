@@ -60,7 +60,7 @@ jobs:
       # wrangler.jsonc 운영 설정에 아직 채우지 않은 값(TODO_PROD_)이 있으면 멈춘다
       - name: Check production config
         run: |
-          if grep -n "TODO_PROD_" wrangler.jsonc; then echo "wrangler.jsonc 운영 설정에 채우지 않은 값이 있습니다"; exit 1; fi
+          if grep -n "\"TODO_PROD_" wrangler.jsonc; then echo "wrangler.jsonc 운영 설정에 채우지 않은 값이 있습니다"; exit 1; fi
           if [ -z "$PROD_DB" ]; then echo "PRODUCTION_DATABASE_URL secret이 없습니다"; exit 1; fi
         env:
           PROD_DB: ${{ secrets.PRODUCTION_DATABASE_URL }}

@@ -2,7 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   // E2P.AI (Cloudflare Workers + OpenNext). 비밀값은 여기 넣지 않는다 → `wrangler secret put` / 로컬은 .dev.vars
   "name": "e2p-ai",
-  "main": ".open-next/worker.js",
+  // OpenNext 앱 + 정리 작업(Cron). worker.mjs가 .open-next/worker.js를 감싼다
+  "main": "worker.mjs",
+  // 정리 작업: 매일 한국 03:00 (UTC 18:00). /api/cron/cleanup, 비밀 값 CRON_SECRET
+  "triggers": { "crons": ["0 18 * * *"] },
   "compatibility_date": "2026-11-01",
   // nodejs_compat: pg·node:crypto 등. global_fetch_strictly_public: 서버가 사설 IP로 fetch 못 하게 (SSRF 방지)
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -31,6 +34,7 @@
     // env 안의 vars·바인딩은 위(운영)에서 상속되지 않으므로 모두 다시 적는다
     "staging": {
       "name": "e2p-ai-staging",
+      "triggers": { "crons": ["0 18 * * *"] },
       "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "e2p-ai-staging" }],
       "vars": {
         "TERMS_VERSION": "2026-11-17",

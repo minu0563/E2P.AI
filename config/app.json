@@ -23,5 +23,11 @@
     "review_after_restrictions": 3,
     "review_window_days": 30
   },
-  "_comment": "placeholder_mode는 유료 기능 플래그(결제 연동 전까지 개발용으로 true). rate_limit: 사용자 동시 요청 수, 사용자·IP 1분당 생성 요청, 로그인 IP 1분당 요청. limits: max_source_bytes=브라우저에서 고를 수 있는 원본 크기, max_upload_bytes=브라우저가 줄여 보낸 뒤 서버가 받는 최대 크기, max_image_side=긴 변(브라우저가 이 크기로 줄인다). 동시 생성 상한·AI 예산은 ai.json. abuse: 연속 차단 단계 조치. 요청 내용 차단(credits.json block_fee.counted_codes와 같은 사유)만 센다. window_minutes 안에 warn_after번이면 경고, restrict_after번이면 restrict_hours시간 생성 제한. review_window_days 안에 제한이 review_after_restrictions번이면 관리자 대시보드 '정지 검토'에 표시(자동 정지는 하지 않음). 관리자 계정은 제외."
+  "retention": {
+    "record_days": 365,
+    "withdrawn_days": 365,
+    "admin_log_days": 365,
+    "batch": 500
+  },
+  "_comment": "placeholder_mode는 유료 기능 플래그(결제 연동 전까지 개발용으로 true). rate_limit: 사용자 동시 요청 수, 사용자·IP 1분당 생성 요청, 로그인 IP 1분당 요청. limits: max_source_bytes=브라우저에서 고를 수 있는 원본 크기, max_upload_bytes=브라우저가 줄여 보낸 뒤 서버가 받는 최대 크기, max_image_side=긴 변(브라우저가 이 크기로 줄인다). 동시 생성 상한·AI 예산은 ai.json. abuse: 연속 차단 단계 조치. 요청 내용 차단(credits.json block_fee.counted_codes와 같은 사유)만 센다. window_minutes 안에 warn_after번이면 경고, restrict_after번이면 restrict_hours시간 생성 제한. review_window_days 안에 제한이 review_after_restrictions번이면 관리자 대시보드 '정지 검토'에 표시(자동 정지는 하지 않음). 관리자 계정은 제외. retention: 정리 작업(매일 한국 03:00, lib/retention.ts). record_days=생성 기록·문의·만료된 크레딧 내역 보관일(생성일 기준, 탈퇴와 무관), withdrawn_days=탈퇴 후 계정 행 보관일, admin_log_days=관리자 작업 기록 보관일, batch=한 번에 지우는 최대 줄 수. 수사기관 보존(hold) 건과 그 사용자는 지우지 않는다. 개인정보처리방침 2항과 맞춰서 바꿀 것."
 }

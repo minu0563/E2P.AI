@@ -264,7 +264,18 @@ const en: Dictionary = {
     inquire: "Ask",
     inquiries: "My inquiries",
     noRequestText: "(no request text)",
-    deleteAccount: "To delete your account or photos, send an inquiry with the type \"Delete my photo or account\".",
+    deleteAccount: "To delete your photos, send an inquiry with the type \"Delete my photo or account\".",
+    withdraw: {
+      title: "Close account",
+      points: [
+        "You will be signed out right away and can no longer sign in or generate. Remaining credits are forfeited.",
+        "Request and credit records are kept for the period in our Privacy Policy to prevent misuse and cooperate with law enforcement, then deleted.",
+        "Uploaded images are deleted automatically when their normal retention period ends (72 hours / 30 days).",
+        "Signing in again with the same Google account reopens your account (sign-up credits are not granted again).",
+      ],
+      confirm: "I understand and want to close my account.",
+      button: "Close account",
+    },
   },
   inquiry: {
     title: "Send an inquiry",

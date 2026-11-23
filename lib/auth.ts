@@ -16,7 +16,10 @@ const newToken = () => randomBytes(32).toString("base64url");
 /** 일회용 메일로 새로 가입하려는 경우 (기존 계정은 로그인 허용) */
 export class DisposableEmailError extends Error {}
 
-/** Google 계정으로 사용자 생성/조회. 처음 가입이면 무료 크레딧 지급. 일회용 메일로는 새로 가입할 수 없다. */
+/**
+ * Google 계정으로 사용자 생성/조회. 처음 가입이면 무료 크레딧 지급. 일회용 메일로는 새로 가입할 수 없다.
+ * 탈퇴한 계정으로 다시 로그인하면 같은 계정을 되살린다(기록·정지·제한 이력이 이어지고, 가입 크레딧은 다시 주지 않는다).
+ */
 export async function upsertGoogleUser(g: GoogleIdentity) {
   const existing =
     (await db.user.findUnique({ where: { googleSub: g.sub } })) ??
@@ -25,7 +28,13 @@ export async function upsertGoogleUser(g: GoogleIdentity) {
   const user = existing
     ? await db.user.update({
         where: { id: existing.id },
-        data: { googleSub: g.sub, email: g.email, name: g.name, verifiedAt: existing.verifiedAt ?? new Date() },
+        data: {
+          googleSub: g.sub,
+          email: g.email,
+          name: g.name,
+          verifiedAt: existing.verifiedAt ?? new Date(),
+          withdrawnAt: null,
+        },
       })
     : await db.user.create({ data: { googleSub: g.sub, email: g.email, name: g.name, verifiedAt: new Date() } });
   // 멱등성 키(signup:userId)로 한 번만 지급
@@ -68,6 +77,7 @@ export async function getCurrentUser() {
   });
   if (!session || session.expiresAt < new Date()) return null;
   if (session.user.suspendedAt) return null; // 정지된 계정 (관리자 화면에서 정지 시 세션도 지운다)
+  if (session.user.withdrawnAt) return null; // 탈퇴한 계정 (탈퇴 시 세션도 지운다)
   return session.user;
 }
 
@@ -76,6 +86,18 @@ export async function endSession() {
   const token = jar.get(SESSION_COOKIE)?.value;
   if (token) await db.session.deleteMany({ where: { tokenHash: hash(token) } });
   jar.delete(SESSION_COOKIE);
+}
+
+/**
+ * 탈퇴: 행은 지우지 않고 표시만 한다(로그인·생성 불가, 모든 세션 삭제). 생성 기록·크레딧 내역·이미지는 지우지 않고
+ * 개인정보처리방침의 보관 기간이 지나면 정리 작업(lib/retention.ts)이 파기한다.
+ */
+export async function withdrawUser(userId: string) {
+  await db.$transaction([
+    db.user.update({ where: { id: userId }, data: { withdrawnAt: new Date() } }),
+    db.session.deleteMany({ where: { userId } }),
+  ]);
+  (await cookies()).delete(SESSION_COOKIE);
 }
 
 /** 현재 약관 버전 동의 기록 (동의 시각·버전) */

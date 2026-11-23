@@ -34,6 +34,7 @@ run("이미지 삭제", async () => {
     other = (await db.user.create({ data: { email: `erase-other-${Date.now()}@example.test` } })).id;
   });
   afterAll(async () => {
+    await db.generationLog.deleteMany({ where: { userId: { in: [me, other] } } }); // 기록이 남은 사용자는 삭제가 거부된다
     await db.user.deleteMany({ where: { id: { in: [me, other] } } });
   });
 

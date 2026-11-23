@@ -123,6 +123,21 @@ async function Account({ t, logoutLabel, locale }: { t: Dictionary["me"]; logout
           <form action="/auth/logout" method="post" className="mt-4">
             <button className="btn btn-ghost px-3 py-1.5 text-xs">{logoutLabel}</button>
           </form>
+          <details className="mt-4 text-xs text-muted">
+            <summary className="cursor-pointer text-faint hover:text-text">{t.withdraw.title}</summary>
+            <form action="/auth/withdraw" method="post" className="mt-3 flex flex-col gap-2 border border-border p-3">
+              <ul className="list-disc space-y-1 pl-4">
+                {t.withdraw.points.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+              <label className="flex cursor-pointer items-start gap-2">
+                <input type="checkbox" name="confirm" value="yes" required className="mt-0.5 accent-accent" />
+                <span>{t.withdraw.confirm}</span>
+              </label>
+              <button className="btn self-start border border-danger px-3 py-1.5 text-danger hover:bg-danger-soft">{t.withdraw.button}</button>
+            </form>
+          </details>
           <p className="mt-3 text-xs text-faint">{t.deleteAccount}</p>
         </Block>
 

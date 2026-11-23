@@ -24,6 +24,7 @@ run("연속 차단 조치", async () => {
   beforeAll(() => expect(A.COUNTED_CODES.length).toBeGreaterThan(0));
   afterAll(async () => {
     await db.adminLog.deleteMany({ where: { targetUserId: { in: ids } } });
+    await db.generationLog.deleteMany({ where: { userId: { in: ids } } }); // 기록이 남은 사용자는 삭제가 거부된다
     await db.user.deleteMany({ where: { id: { in: ids } } });
   });
 

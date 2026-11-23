@@ -21,6 +21,8 @@ run("문의", async () => {
     other = (await db.user.create({ data: { email: `inq-other-${Date.now()}@example.test` } })).id;
   });
   afterAll(async () => {
+    await db.inquiry.deleteMany({ where: { userId: { in: [me, other] } } }); // 기록이 남은 사용자는 삭제가 거부된다
+    await db.generationLog.deleteMany({ where: { userId: { in: [me, other] } } });
     await db.user.deleteMany({ where: { id: { in: [me, other] } } });
   });
 

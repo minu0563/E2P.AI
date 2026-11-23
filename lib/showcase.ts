@@ -5,8 +5,8 @@
  * 실제 인물이 나오면 본인 또는 사용 동의를 받은 사진·영상만 쓴다.
  */
 /** 메인 "지원 모델" 목록. 모델명은 설명 목적으로만 쓴다(제휴 아님). 지원 시작하면 live: true */
-export const MODELS: { name: string; modes: ("i2v" | "t2i" | "i2i" | "t2v")[]; live: boolean }[] = [
-  { name: "MiniMax H3", modes: ["i2v"], live: true },
+export const MODELS: { name: string; modes: ("i2v" | "t2i" | "i2i" | "t2v")[]; live: boolean; /** /guide/<slug> 모델별 가이드 (있으면) */ guide?: string }[] = [
+  { name: "MiniMax H3", modes: ["i2v"], live: true, guide: "minimax-h3" },
   { name: "FLUX", modes: ["t2i", "i2i"], live: false },
   { name: "Krea", modes: ["t2i"], live: false },
   { name: "Qwen Image", modes: ["t2i", "i2i"], live: false },

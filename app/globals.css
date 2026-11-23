@@ -188,6 +188,16 @@ body {
   text-decoration-color: var(--accent);
   text-underline-offset: 3px;
 }
+/* 문서 안의 카드 목록 등: 문서 기본 목록·링크 모양을 쓰지 않는다 */
+.prose-doc ul.not-prose > li {
+  padding-left: 0;
+}
+.prose-doc ul.not-prose > li::before {
+  content: none;
+}
+.prose-doc .not-prose a {
+  text-decoration: none;
+}
 .prose-doc a:hover {
   color: var(--accent);
 }

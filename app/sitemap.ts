@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 const PAGES: { path: string; priority: number; changeFrequency: "weekly" | "monthly" | "yearly" }[] = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/guide", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/guide/minimax-h3", priority: 0.9, changeFrequency: "monthly" },
   { path: "/faq", priority: 0.7, changeFrequency: "monthly" },
   { path: "/about", priority: 0.5, changeFrequency: "yearly" },
   { path: "/contact", priority: 0.3, changeFrequency: "yearly" },

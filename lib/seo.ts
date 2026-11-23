@@ -26,16 +26,8 @@ export function alternates(path: string, locale: Locale): Metadata["alternates"]
 }
 
 export const HOME_META = {
-  ko: {
-    title: `${SITE.name} — 이미지를 영상 프롬프트로 바꾸는 생성기`,
-    description:
-      "E2P.AI(Everything to Prompt): 이미지 한 장과 짧은 요청을 이미지→영상(i2v) 모델용 프롬프트로 바꿔 주는 무료 도구. 장면·복장·조명·카메라를 자동으로 채우고, 이미지·영상은 생성하지 않습니다.",
-  },
-  en: {
-    title: `${SITE.name} — Image-to-Video Prompt Generator`,
-    description:
-      "E2P.AI (Everything to Prompt) turns one image and a short request into a ready-to-use image-to-video (i2v) prompt. Scene, outfit, lighting and camera are filled in automatically. No images or videos are generated.",
-  },
+  ko: { title: `${SITE.name} - Prompt Generator`, description: SITE.expansion },
+  en: { title: `${SITE.name} - Prompt Generator`, description: SITE.expansion },
 } as const;
 
 /** 공유 카드 공통값 (자식 페이지의 openGraph는 부모 것을 통째로 덮으므로 매번 같이 넣는다) */
@@ -64,6 +56,22 @@ export async function pageMeta(
     alternates: alternates(path, locale),
     openGraph: { ...openGraphBase(locale), title: ogTitle, description, url: localePath(locale, path) },
     twitter: { card: "summary_large_image", title: ogTitle, description, images: ["/og.png"] },
+  };
+}
+
+/** 이동 경로 구조화 데이터 (검색 결과에 "E2P.AI › 가이드 › MiniMax H3"처럼 표시). items: [이름, 경로] */
+export function breadcrumbJsonLd(locale: Locale, items: [string, string][]) {
+  const base = siteUrl();
+  if (!base) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(([name, path], i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name,
+      item: `${base}${localePath(locale, path)}`,
+    })),
   };
 }
 

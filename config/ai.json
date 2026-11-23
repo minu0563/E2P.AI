@@ -1,9 +1,9 @@
 {
   "generation_enabled": true,
   "budget": {
-    "daily_usd": 1.0,
-    "monthly_usd": 20.0,
-    "daily_generations": 500
+    "daily_usd": 3.0,
+    "monthly_usd": 50.0,
+    "daily_generations": 3000
   },
   "concurrency": {
     "max_active_total": 20,

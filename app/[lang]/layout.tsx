@@ -7,6 +7,7 @@ import { LangSwitch } from "@/components/lang-switch";
 import { Logo } from "@/components/logo";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { LOCALES } from "@/lib/i18n/config";
+import { HOME_META, openGraphBase, siteUrl } from "@/lib/seo";
 import { FOOTER_LINKS, NAV, SITE } from "@/lib/site";
 import "../globals.css";
 
@@ -18,10 +19,22 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getDictionary();
+  const locale = await getLocale();
+  const home = HOME_META[locale];
+  const base = siteUrl();
+  const google = process.env.GOOGLE_SITE_VERIFICATION;
+  const naver = process.env.NAVER_SITE_VERIFICATION;
   return {
-    title: { default: `${SITE.name} — ${SITE.expansion}`, template: `%s · ${SITE.name}` },
-    description: t.meta.description,
+    ...(base && { metadataBase: new URL(base) }),
+    title: { default: home.title, template: `%s · ${SITE.name}` },
+    description: home.description,
+    applicationName: SITE.name,
+    openGraph: { ...openGraphBase(locale), title: home.title, description: home.description },
+    twitter: { card: "summary_large_image", title: home.title, description: home.description, images: ["/og.png"] },
+    // 검색 등록 확인 코드 (Google Search Console · 네이버 서치어드바이저). 공개값이라 vars에 둔다
+    ...((google || naver) && {
+      verification: { ...(google && { google }), ...(naver && { other: { "naver-site-verification": naver } }) },
+    }),
   };
 }
 

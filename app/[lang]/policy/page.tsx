@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import Link from "next/link";
 import { AdSlot } from "@/components/ad-slot";
 import { DocPage } from "@/components/doc-page";
@@ -6,7 +7,10 @@ import { getLocale } from "@/lib/i18n";
 import { LEGAL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLocale()) === "ko" ? "허용 가능 이용 정책" : "Acceptable Use Policy" };
+  return pageMeta("/policy", {
+    ko: { title: "허용 가능 이용 정책" },
+    en: { title: "Acceptable Use Policy" },
+  });
 }
 
 export default async function PolicyPage() {

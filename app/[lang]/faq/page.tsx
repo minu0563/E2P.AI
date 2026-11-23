@@ -1,5 +1,6 @@
 import { AdSlot } from "@/components/ad-slot";
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import { DocPage } from "@/components/doc-page";
 import creditConfig from "@/config/credits.json";
 import { getLocale } from "@/lib/i18n";
@@ -7,7 +8,10 @@ import { getLocale } from "@/lib/i18n";
 const { signup: SIGNUP, daily: DAILY } = creditConfig;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLocale()) === "ko" ? "자주 묻는 질문" : "FAQ" };
+  return pageMeta("/faq", {
+    ko: { title: "자주 묻는 질문", description: "E2P.AI 이미지→영상 프롬프트 생성기의 사용법, 크레딧, 정책에 대한 자주 묻는 질문." },
+    en: { title: "FAQ", description: "Frequently asked questions about the E2P.AI image-to-video prompt generator: usage, credits and policies." },
+  });
 }
 
 const KO = [

@@ -1,17 +1,15 @@
 import { AdSlot } from "@/components/ad-slot";
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import Link from "next/link";
 import { DocPage } from "@/components/doc-page";
 import { getLocale } from "@/lib/i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const ko = (await getLocale()) === "ko";
-  return {
-    title: ko ? "이미지→영상 프롬프트 가이드" : "Image-to-video prompt guide",
-    description: ko
-      ? "이미지→영상 모델에 넣을 프롬프트를 쓰는 방법과 예시."
-      : "How to write prompts for image-to-video models, with examples.",
-  };
+  return pageMeta("/guide", {
+    ko: { title: "이미지→영상 프롬프트 가이드", description: "이미지→영상(i2v) 모델에 넣을 프롬프트를 쓰는 방법과 예시. E2P.AI 가이드." },
+    en: { title: "Image-to-video prompt guide", description: "How to write prompts for image-to-video (i2v) models, with examples. The E2P.AI guide." },
+  });
 }
 
 const EXAMPLES = [

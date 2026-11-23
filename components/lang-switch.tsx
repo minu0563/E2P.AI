@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { LOCALES, type Locale } from "@/lib/i18n/config";
 
-/** /ko/... · /en/... 로 이동하면 proxy가 쿠키에 저장하고 같은 페이지(언어 없는 주소)로 돌려보낸다 */
+/** /ko/... · /en/... 로 이동하면 그 언어로 보여주고 proxy가 쿠키에 저장한다 (이후 언어 없는 주소도 그 언어) */
 export function LangSwitch({ locale, label }: { locale: Locale; label: string }) {
   const pathname = usePathname();
   const rest = pathname.replace(/^\/(ko|en)(?=\/|$)/, "") || "";

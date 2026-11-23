@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import Link from "next/link";
 import { AdSlot } from "@/components/ad-slot";
 import { DocPage } from "@/components/doc-page";
@@ -7,7 +8,10 @@ import { getLocale } from "@/lib/i18n";
 import { LEGAL, SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLocale()) === "ko" ? "이용약관" : "Terms of Service" };
+  return pageMeta("/terms", {
+    ko: { title: "이용약관" },
+    en: { title: "Terms of Service" },
+  });
 }
 
 export default async function TermsPage() {

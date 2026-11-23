@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getDictionary, getLocale } from "@/lib/i18n";
+import { HOME_META, homeJsonLd, pageMeta } from "@/lib/seo";
 import { MODELS, SHOWCASE } from "@/lib/showcase";
 import { SITE } from "@/lib/site";
 import "./home.css";
@@ -9,6 +11,10 @@ const SAMPLE = `[Core idea] 8s, 9:16. One continuous take, no cuts. Subject: the
 0–3s: She takes a breath and starts jogging along the wet sand, arms swinging loosely.
 3–8s: She slows to a stop, turns her head back over her shoulder and smiles.
 Audio: waves, light wind. No dialogue.`;
+
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMeta("/", HOME_META);
+}
 
 function Heading({ label, title, children }: { label: string; title: string; children?: React.ReactNode }) {
   return (
@@ -28,8 +34,16 @@ export default async function Home() {
   const t = dict.home;
   const show = SHOWCASE[0];
   const request = show.request[locale];
+  const jsonLd = homeJsonLd(locale);
   return (
     <main>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          // 고정 값으로 만든 JSON (사용자 입력 없음). "<"는 이스케이프해 script 태그를 닫지 못하게 한다
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+        />
+      )}
       {/* Hero */}
       <section className="mx-auto grid w-full max-w-6xl gap-14 px-4 pt-16 pb-20 md:pt-24 lg:grid-cols-[1fr_460px] lg:items-center">
         <div>

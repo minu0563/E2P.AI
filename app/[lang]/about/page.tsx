@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import Link from "next/link";
 import { DocPage } from "@/components/doc-page";
 import { getLocale } from "@/lib/i18n";
 import { SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLocale()) === "ko" ? "소개" : "About" };
+  return pageMeta("/about", {
+    ko: { title: "소개", description: "E2P.AI(Everything to Prompt)가 무엇이고 어떻게 동작하는지 소개합니다." },
+    en: { title: "About", description: "What E2P.AI (Everything to Prompt) is and how it works." },
+  });
 }
 
 export default async function AboutPage() {

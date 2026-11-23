@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import { AdSlot } from "@/components/ad-slot";
 import { DocPage } from "@/components/doc-page";
 import { getLocale } from "@/lib/i18n";
 import { LEGAL, SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLocale()) === "ko" ? "개인정보처리방침" : "Privacy Policy" };
+  return pageMeta("/privacy", {
+    ko: { title: "개인정보처리방침" },
+    en: { title: "Privacy Policy" },
+  });
 }
 
 export default async function PrivacyPage() {

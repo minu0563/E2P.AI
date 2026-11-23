@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import { DocPage } from "@/components/doc-page";
 import { getLocale } from "@/lib/i18n";
 import { SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLocale()) === "ko" ? "문의" : "Contact" };
+  return pageMeta("/contact", {
+    ko: { title: "문의", description: "E2P.AI 문의 방법." },
+    en: { title: "Contact", description: "How to contact E2P.AI." },
+  });
 }
 
 export default async function ContactPage() {

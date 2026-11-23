@@ -26,8 +26,8 @@ export function alternates(path: string, locale: Locale): Metadata["alternates"]
 }
 
 export const HOME_META = {
-  ko: { title: `${SITE.name} - Prompt Generator`, description: SITE.expansion },
-  en: { title: `${SITE.name} - Prompt Generator`, description: SITE.expansion },
+  ko: { title: `${SITE.name} - Prompt Generator`, description: `${SITE.short} - ${SITE.expansion}` },
+  en: { title: `${SITE.name} - Prompt Generator`, description: `${SITE.short} - ${SITE.expansion}` },
 } as const;
 
 /** 공유 카드 공통값 (자식 페이지의 openGraph는 부모 것을 통째로 덮으므로 매번 같이 넣는다) */

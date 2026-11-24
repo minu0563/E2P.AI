@@ -251,7 +251,7 @@ function En() {
       <p>The Service is not available to children under 14 (or the minimum age in your country, if higher).</p>
 
       <h2>9. Contact</h2>
-      <p>Privacy officer: {LEGAL.privacyOfficer} · {SITE.contactEmail}</p>
+      <p>Privacy officer: {LEGAL.privacyOfficerEn} · {SITE.contactEmail}</p>
 
       <p className="mt-8 text-xs">If the Korean and English versions differ, the Korean version prevails.</p>
       <AdSlot placement="privacy" />

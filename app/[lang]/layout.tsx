@@ -7,6 +7,7 @@ import { LangSwitch } from "@/components/lang-switch";
 import { Logo } from "@/components/logo";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { LOCALES } from "@/lib/i18n/config";
+import ads from "@/config/ads.json";
 import { HOME_META, openGraphBase, siteUrl } from "@/lib/seo";
 import { FOOTER_LINKS, NAV, SITE } from "@/lib/site";
 import "../globals.css";
@@ -35,6 +36,8 @@ export async function generateMetadata(): Promise<Metadata> {
     ...((google || naver) && {
       verification: { ...(google && { google }), ...(naver && { other: { "naver-site-verification": naver } }) },
     }),
+    // 애드센스 사이트 소유 확인 (게시자 ID, 공개값). 광고 스크립트는 광고 칸이 있는 페이지에서만 따로 불러온다
+    ...(ads.client && { other: { "google-adsense-account": ads.client } }),
   };
 }
 

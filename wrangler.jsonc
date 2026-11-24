@@ -45,6 +45,8 @@
       "vars": {
         "TERMS_VERSION": "2026-11-17",
         "APP_URL": "https://e2pai.app",
+        // 검색 등록 확인 코드(공개값, <meta>로 나감)
+        "GOOGLE_SITE_VERIFICATION": "Uh7ZHLdd0CmDsCytkdIkXV9JrZdg94ZAyWcct91d16E",
         // 운영 전용 Turnstile 위젯의 사이트 키(공개값). 비밀 키 TURNSTILE_SECRET은 Workers Secrets
         "TURNSTILE_SITE_KEY": "0x4AAAAAAGPBkbplyKiCQhKX",
         "INFERENCE_PROVIDER": "workers-ai",

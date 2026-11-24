@@ -26,8 +26,17 @@ export function alternates(path: string, locale: Locale): Metadata["alternates"]
 }
 
 export const HOME_META = {
-  ko: { title: `${SITE.name} - Prompt Generator`, description: `${SITE.short} - ${SITE.expansion}` },
-  en: { title: `${SITE.name} - Prompt Generator`, description: `${SITE.short} - ${SITE.expansion}` },
+  // 설명이 너무 짧으면 Google이 본문(영상 설명 등)을 대신 잘라 쓴다 → 한두 문장(약 80~150자)으로
+  ko: {
+    title: `${SITE.name} - Prompt Generator`,
+    description:
+      "E2P.AI(Everything to Prompt)는 이미지 한 장과 짧은 요청을 영상 생성 모델용 프롬프트로 바꿔 주는 무료 프롬프트 생성기입니다. 이미지·영상은 만들지 않고 프롬프트 텍스트만 제공합니다.",
+  },
+  en: {
+    title: `${SITE.name} - Prompt Generator`,
+    description:
+      "E2P.AI (Everything to Prompt) turns one image and a short request into a ready-to-use prompt for video generation models. Free, and prompt text only: no images or videos are generated.",
+  },
 } as const;
 
 /** 공유 카드 공통값 (자식 페이지의 openGraph는 부모 것을 통째로 덮으므로 매번 같이 넣는다) */

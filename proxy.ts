@@ -5,6 +5,7 @@ import { LOCALE_COOKIE, isLocale, localeFromAcceptLanguage } from "@/lib/i18n/co
  * 언어 라우팅. 언어 없는 주소(/generate)는 내부에서 /ko/generate · /en/generate로 rewrite.
  * - 쿠키(lang)가 있으면 그 언어 (사용자가 직접 바꾼 경우)
  * - 없으면 브라우저 언어(Accept-Language)가 한국어면 ko, 그 외 en
+ * - 첫 화면(/)만은 rewrite 대신 /ko · /en으로 302 이동 (검색 결과에 언어 없는 /가 뜨지 않게)
  * - /ko/... · /en/... 는 그 언어로 그대로 보여주고 쿠키에 저장 (언어 전환 링크, 검색 결과 주소)
  */
 export function proxy(request: NextRequest) {
@@ -30,6 +31,15 @@ export function proxy(request: NextRequest) {
   const locale = isLocale(cookie) ? cookie : localeFromAcceptLanguage(request.headers.get("accept-language"));
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+
+  // 첫 화면(/)은 언어별 주소로 이동시킨다 (302). rewrite면 검색 엔진이 언어 없는 /를 대표 주소로 색인해
+  // 검색 결과는 영어 설명인데 눌러 보면 한국어인 일이 생긴다. 다른 언어 없는 주소는 그대로 rewrite (canonical이 언어별 주소)
+  if (pathname === "/") {
+    const res = NextResponse.redirect(url, 302);
+    res.headers.set("Vary", "Accept-Language, Cookie");
+    res.headers.set("Cache-Control", "private, no-store");
+    return res;
+  }
   return NextResponse.rewrite(url);
 }
 

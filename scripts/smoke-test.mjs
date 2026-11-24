@@ -26,7 +26,7 @@ async function waitUntilUp() {
 const checks = [
   ["/ko 200, 제목", async () => { const r = await get("/ko"); return r.status === 200 && (await r.text()).includes("E2P.AI"); }],
   ["/en 200", async () => (await get("/en")).status === 200],
-  ["/ 200 (언어 협상)", async () => (await get("/")).status === 200],
+  ["/ → 언어별 주소로 이동 (302)", async () => { const r = await fetch(base + "/", { redirect: "manual" }); return r.status === 302 && /\/(ko|en)$/.test(r.headers.get("location") || ""); }],
   ["/guide/minimax-h3 200", async () => (await get("/ko/guide/minimax-h3")).status === 200],
   ["보안 헤더 (페이지)", async () => {
     const h = (await get("/ko")).headers;

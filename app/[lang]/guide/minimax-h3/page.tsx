@@ -10,11 +10,11 @@ const PATH = "/guide/minimax-h3";
 const META = {
   ko: {
     title: "MiniMax H3 프롬프트 가이드",
-    description: "MiniMax H3 프롬프트 작성법과 예시. 사진 한 장과 짧은 요청으로 MiniMax H3용 프롬프트를 바로 만드는 E2P.AI 프롬프트 생성기.",
+    description: "MiniMax H3 프롬프트 작성법과 예시.",
   },
   en: {
     title: "MiniMax H3 Prompt Guide",
-    description: "How to write MiniMax H3 prompts, with examples. Turn one photo and a short request into a MiniMax H3 prompt with the E2P.AI prompt generator.",
+    description: "How to write MiniMax H3 prompts, with examples.",
   },
 };
 

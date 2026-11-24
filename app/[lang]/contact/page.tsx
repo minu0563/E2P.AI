@@ -6,7 +6,7 @@ import { SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/contact", {
-    ko: { title: "문의", description: "E2P.AI 문의 방법." },
+    ko: { title: "문의", description: "E2P.AI에 문의하는 방법." },
     en: { title: "Contact", description: "How to contact E2P.AI." },
   });
 }

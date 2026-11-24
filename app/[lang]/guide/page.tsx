@@ -9,8 +9,8 @@ import { MODELS } from "@/lib/showcase";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/guide", {
-    ko: { title: "모델별 프롬프트 가이드", description: "MiniMax H3 등 생성 모델별 프롬프트 작성 가이드. E2P.AI" },
-    en: { title: "Prompt guides by model", description: "Prompt writing guides for each generation model, including MiniMax H3. E2P.AI" },
+    ko: { title: "모델별 프롬프트 가이드", description: "생성 모델별 프롬프트 작성법과 예시." },
+    en: { title: "Prompt Guides by Model", description: "How to write prompts for each generation model, with examples." },
   });
 }
 

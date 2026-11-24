@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import { AdSlot } from "@/components/ad-slot";
 import appConfig from "@/config/app.json";
 import { getDictionary, getLocale } from "@/lib/i18n";
+import { pageMeta } from "@/lib/seo";
 import { DEFAULT_PROFILE, getProfile } from "@/lib/profile";
 import { Generator } from "./generator";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getDictionary()).generator.title };
+  return pageMeta("/generate", {
+    ko: { title: "프롬프트 생성기", description: "이미지를 올리고 원하는 동작을 적으면 영상 프롬프트를 만들어 줍니다." },
+    en: { title: "Prompt Generator", description: "Upload an image, describe the motion, and get a video prompt." },
+  });
 }
 
 export default async function GeneratePage() {

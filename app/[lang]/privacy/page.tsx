@@ -7,8 +7,8 @@ import { LEGAL, SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/privacy", {
-    ko: { title: "개인정보처리방침" },
-    en: { title: "Privacy Policy" },
+    ko: { title: "개인정보처리방침", description: "E2P.AI 개인정보처리방침." },
+    en: { title: "Privacy Policy", description: "How E2P.AI handles personal data." },
   });
 }
 

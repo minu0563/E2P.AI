@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const naver = process.env.NAVER_SITE_VERIFICATION;
   return {
     ...(base && { metadataBase: new URL(base) }),
-    title: { default: home.title, template: `%s · ${SITE.name}` },
+    title: { default: home.title, template: `${SITE.name} | %s` },
     description: home.description,
     applicationName: SITE.name,
     openGraph: { ...openGraphBase(locale), title: home.title, description: home.description },

@@ -8,8 +8,8 @@ import { LEGAL, SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/refund", {
-    ko: { title: "환불 정책" },
-    en: { title: "Refund Policy" },
+    ko: { title: "환불 정책", description: "E2P.AI 환불 정책." },
+    en: { title: "Refund Policy", description: "E2P.AI refund policy." },
   });
 }
 

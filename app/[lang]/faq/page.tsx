@@ -9,8 +9,8 @@ const { signup: SIGNUP, daily: DAILY } = creditConfig;
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/faq", {
-    ko: { title: "자주 묻는 질문", description: "E2P.AI에 대한 자주 묻는 질문" },
-    en: { title: "FAQ", description: "Frequently asked questions about E2P.AI" },
+    ko: { title: "자주 묻는 질문", description: "E2P.AI에 대해 자주 묻는 질문과 답변." },
+    en: { title: "FAQ", description: "Common questions and answers about E2P.AI." },
   });
 }
 

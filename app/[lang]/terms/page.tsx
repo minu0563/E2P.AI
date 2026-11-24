@@ -9,8 +9,8 @@ import { LEGAL, SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/terms", {
-    ko: { title: "이용약관" },
-    en: { title: "Terms of Service" },
+    ko: { title: "이용약관", description: "E2P.AI 이용약관." },
+    en: { title: "Terms of Service", description: "E2P.AI terms of service." },
   });
 }
 

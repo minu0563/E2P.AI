@@ -8,8 +8,8 @@ import { LEGAL } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/policy", {
-    ko: { title: "허용 가능 이용 정책" },
-    en: { title: "Acceptable Use Policy" },
+    ko: { title: "허용 가능 이용 정책", description: "E2P.AI에서 허용되는 이용과 금지되는 이용." },
+    en: { title: "Acceptable Use Policy", description: "What you may and may not do with E2P.AI." },
   });
 }
 

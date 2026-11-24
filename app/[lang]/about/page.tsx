@@ -7,8 +7,8 @@ import { SITE } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/about", {
-    ko: { title: "소개", description: "E2P.AI(Everything to Prompt)가 무엇이고 어떻게 동작하는지 소개합니다." },
-    en: { title: "About", description: "What E2P.AI (Everything to Prompt) is and how it works." },
+    ko: { title: "소개", description: "E2P.AI가 무엇이고 어떻게 동작하는지 소개합니다." },
+    en: { title: "About", description: "What E2P.AI is and how it works." },
   });
 }
 

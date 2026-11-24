@@ -43,7 +43,7 @@ const EN = [
 export default async function FaqPage() {
   const ko = (await getLocale()) === "ko";
   return (
-    <DocPage title={ko ? "자주 묻는 질문" : "Frequently asked questions"}>
+    <DocPage rails="both" title={ko ? "자주 묻는 질문" : "Frequently asked questions"}>
       <div className="border-t border-line">
         {(ko ? KO : EN).map((f) => (
           <details key={f.q} className="group border-b border-border py-4">
@@ -55,7 +55,7 @@ export default async function FaqPage() {
           </details>
         ))}
       </div>
-      <AdSlot placement="faq" />
+      <AdSlot placement="faq" media="narrow" />
     </DocPage>
   );
 }

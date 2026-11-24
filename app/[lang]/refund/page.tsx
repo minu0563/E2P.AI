@@ -19,7 +19,7 @@ export default async function RefundPage() {
 
 function Ko() {
   return (
-    <DocPage title="환불 정책" updated={LEGAL.effective}>
+    <DocPage rails="right" title="환불 정책" updated={LEGAL.effective}>
       <p>현재 유료 상품은 판매하지 않습니다. 유료 크레딧·구독을 도입하면 아래 기준을 적용합니다.</p>
 
       <h2>1. 자동 반환</h2>
@@ -55,14 +55,14 @@ function Ko() {
         환불은 결제 수단에 따라 3~7영업일이 걸릴 수 있습니다.
       </p>
       <p className="mt-6 text-xs">이 정책은 「전자상거래 등에서의 소비자보호에 관한 법률」 등 관련 법령보다 이용자에게 불리하게 적용되지 않습니다.</p>
-      <AdSlot placement="refund" />
+      <AdSlot placement="refund" media="narrow" />
     </DocPage>
   );
 }
 
 function En() {
   return (
-    <DocPage title="Refund Policy" updated={LEGAL.effective}>
+    <DocPage rails="right" title="Refund Policy" updated={LEGAL.effective}>
       <p>We do not sell paid plans yet. When paid credits or subscriptions are introduced, the following applies.</p>
 
       <h2>1. Automatic returns</h2>
@@ -97,7 +97,7 @@ function En() {
         reason. We reply within 3 business days; refunds take 3–7 business days depending on the payment method.
       </p>
       <p className="mt-6 text-xs">This policy does not limit any rights you have under applicable consumer protection law.</p>
-      <AdSlot placement="refund" />
+      <AdSlot placement="refund" media="narrow" />
     </DocPage>
   );
 }

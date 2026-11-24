@@ -20,7 +20,7 @@ export default async function GuideIndexPage() {
   const ko = locale === "ko";
   const modes = (await getDictionary()).home.models.modes;
   return (
-    <DocPage
+    <DocPage rails="both"
       title={ko ? "모델별 프롬프트 가이드" : "Prompt guides by model"}
       lead={ko ? "쓰는 모델을 고르세요. 모델마다 잘 먹히는 프롬프트 형식이 다릅니다." : "Pick the model you use. Each model responds best to a different prompt style."}
     >
@@ -51,7 +51,7 @@ export default async function GuideIndexPage() {
         })}
       </ul>
 
-      <AdSlot placement="guide" />
+      <AdSlot placement="guide" media="narrow" />
 
       <p className="mt-6 text-xs">
         {ko

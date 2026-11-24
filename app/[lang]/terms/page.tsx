@@ -20,7 +20,7 @@ export default async function TermsPage() {
 
 function Ko() {
   return (
-    <DocPage title="이용약관" updated={LEGAL.effective}>
+    <DocPage rails="right" title="이용약관" updated={LEGAL.effective}>
       <h2>제1조 (목적)</h2>
       <p>
         이 약관은 {LEGAL.operator}(이하 ‘회사’)가 제공하는 {SITE.name}(이하 ‘서비스’)의 이용 조건과 절차, 회사와 이용자의
@@ -132,14 +132,14 @@ function Ko() {
 
       <h2>부칙</h2>
       <p>이 약관은 {LEGAL.effective}부터 시행합니다.</p>
-      <AdSlot placement="terms" />
+      <AdSlot placement="terms" media="narrow" />
     </DocPage>
   );
 }
 
 function En() {
   return (
-    <DocPage title="Terms of Service" updated={LEGAL.effective}>
+    <DocPage rails="right" title="Terms of Service" updated={LEGAL.effective}>
       <h2>1. About these terms</h2>
       <p>
         These terms govern your use of {SITE.name} (the “Service”), operated by {LEGAL.operatorEn} (“we”, “us”). By
@@ -244,7 +244,7 @@ function En() {
       <p>These terms are governed by the laws of the Republic of Korea. Mandatory consumer protections of your country of residence still apply.</p>
 
       <p className="mt-8 text-xs">If the Korean and English versions differ, the Korean version prevails.</p>
-      <AdSlot placement="terms" />
+      <AdSlot placement="terms" media="narrow" />
     </DocPage>
   );
 }

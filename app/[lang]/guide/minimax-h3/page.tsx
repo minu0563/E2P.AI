@@ -67,6 +67,7 @@ export default async function MiniMaxH3GuidePage() {
   const ko = locale === "ko";
   return (
     <DocPage
+      rails="both"
       title={META[locale].title}
       lead={
         ko
@@ -157,7 +158,7 @@ export default async function MiniMaxH3GuidePage() {
         );
       })}
 
-      <AdSlot placement="guide" />
+      <AdSlot placement="guide" media="narrow" />
 
       <p className="mt-8">
         <Link href="/generate">{ko ? "MiniMax H3 프롬프트 직접 만들어 보기 →" : "Make your own MiniMax H3 prompt →"}</Link>

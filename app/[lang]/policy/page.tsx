@@ -19,7 +19,7 @@ export default async function PolicyPage() {
 
 function Ko() {
   return (
-    <DocPage
+    <DocPage rails="right"
       title="허용 가능 이용 정책"
       updated={LEGAL.effective}
       lead="안전한 이용을 위해 아래 기준으로 요청을 처리합니다. 이 기준은 서버에서 자동으로 적용됩니다."
@@ -52,14 +52,14 @@ function Ko() {
 
       <h2>오차단 이의 제기</h2>
       <p>정상적인 요청이 거절되었다면 <Link href="/contact">문의</Link>로 알려 주세요. 검토 후 기준 개선에 반영합니다.</p>
-      <AdSlot placement="policy" />
+      <AdSlot placement="policy" media="narrow" />
     </DocPage>
   );
 }
 
 function En() {
   return (
-    <DocPage
+    <DocPage rails="right"
       title="Acceptable Use Policy"
       updated={LEGAL.effective}
       lead="To keep the Service safe, requests are handled by the rules below. They are applied automatically on our servers."
@@ -92,7 +92,7 @@ function En() {
 
       <h2>Appeals</h2>
       <p>If a legitimate request was declined, tell us via <Link href="/contact">Contact</Link>. We review appeals and use them to improve our rules.</p>
-      <AdSlot placement="policy" />
+      <AdSlot placement="policy" media="narrow" />
     </DocPage>
   );
 }

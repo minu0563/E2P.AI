@@ -78,7 +78,7 @@ export default async function Home() {
             {/* 이미지 */}
             <figure className="mx-auto flex w-full max-w-[300px] flex-col lg:max-w-none">
               <StageLabel n={1} text={t.showcase.image} />
-              <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border bg-surface">
+              <div className="relative aspect-[9/16] overflow-hidden rounded-lg border border-border bg-surface">
                 {show.image ? (
                   // eslint-disable-next-line @next/next/no-img-element -- 운영자가 넣는 정적 예시 이미지
                   <img src={show.image} alt="" className="size-full object-cover" />
@@ -110,9 +110,9 @@ export default async function Home() {
             {/* 영상 */}
             <figure className="mx-auto flex w-full max-w-[300px] flex-col lg:max-w-none">
               <StageLabel n={3} text={t.showcase.video} />
-              <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border bg-surface">
+              <div className="relative aspect-[9/16] overflow-hidden rounded-lg border border-border bg-surface">
                 {show.video ? (
-                  <video src={show.video} autoPlay muted loop playsInline className="size-full object-cover" />
+                  <video src={show.video} poster={show.image ?? undefined} autoPlay muted loop playsInline preload="metadata" className="size-full object-cover" />
                 ) : (
                   <Slot text={t.showcase.videoSlot} hint="public/showcase/1-video.mp4 → lib/showcase.ts" play />
                 )}

@@ -44,6 +44,10 @@ export type PipelineInput = {
   image: { base64: string; hash: string };
   /** 안전 검사 모드 덮어쓰기 (개발 환경의 테스트 계정만 "shadow") */
   safetyMode?: "shadow";
+  /** 대사 방식 (기본: 화면 속 인물이 말함) */
+  dialogueMode?: "on_screen" | "voiceover";
+  /** 시선 (기본: 프로필 → auto) */
+  gaze?: "auto" | "camera";
   /** 진행 단계 알림 (큐 진행 상태 표시용) */
   onStage?: (stage: "analyzing" | "writing") => void;
   /** 사용자가 취소했는지. 분석이 끝난 뒤 확인해 생성 호출을 아낀다 */
@@ -324,9 +328,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     keyMode,
     placeholder: profile.placeholder,
     pace: input.pace,
-    hasDialogue: !!input.fields.dialogue.trim(),
+    // 대사는 모델이 쓰지 않고 코드가 원문 그대로 <d>[언어] …</d>로 넣는다
+    dialogue: input.fields.dialogue.trim(),
+    dialogueMode: input.dialogueMode ?? "on_screen",
     allowFrameExtension: wantsFrameExtension([input.request, input.fields.key_action, input.fields.camera]),
+    gaze: input.gaze ?? profile.gaze ?? "auto",
+    segmentRender: profile.segment_render ?? "sequential",
   };
+  const hasDialogue = !!ctx.dialogue;
 
   // 노골적 요청을 중화한 경우엔 출력에 암시적 표현도 허용하지 않는다(더 엄격하게)
   const inputWasSuggestive = !explicitNeutralized && (a.request_level === "suggestive" || scan.suggestive.length > 0);
@@ -355,7 +364,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       const prompt = assemblePrompt(blocks, ctx);
 
       // [6] 출력 검사
-      const violations = checkOutput({ profile, prompt, mode: keyMode, inputWasSuggestive, neutralized: neutralize });
+      const violations = checkOutput({ profile, prompt, mode: keyMode, inputWasSuggestive, neutralized: neutralize, hasDialogue });
       if (violations.length) {
         stages.push({ stage: `output_check#${attempt + 1}`, violations });
         continue;
@@ -384,9 +393,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
           scene: blocks.location,
           appearance: a.appearance,
           ...(keyMode === "auto" && { key_action: blocks.event }),
-          camera: blocks.camera || "원본 구도 유지",
+          camera: blocks.camera || "고정 카메라",
           lighting: blocks.lighting,
-          audio: blocks.audio,
+          audio: blocks.soundscape,
         },
         notices: neutralize ? [NEUTRALIZED_NOTICE] : [],
         meta: { shot_type: a.shot_type, viewpoint: a.viewpoint },

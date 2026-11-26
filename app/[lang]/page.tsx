@@ -7,11 +7,13 @@ import { MODELS, SHOWCASE } from "@/lib/showcase";
 import { SITE } from "@/lib/site";
 import "./home.css";
 
-const SAMPLE = `[Core idea] 8s, 9:16. One continuous take, no cuts. Subject: the person from @image1 in a white linen shirt. Location: a sandy beach at sunset.
-[Scene-by-scene]
-0–3s: She takes a breath and starts jogging along the wet sand, arms swinging loosely.
-3–8s: She slows to a stop, turns her head back over her shoulder and smiles.
-Audio: waves, light wind. No dialogue.`;
+const SAMPLE = `For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.
+
+integrated_multimodal_description: [Shot 1] Live-action, the woman in <Picture 1> wears a white linen shirt. A sandy beach at sunset. She takes a breath and starts jogging along the wet sand, arms swinging loosely. Then she slows to a stop and turns her head back over her shoulder.
+
+overall_soundscape: Waves rolling onto the shore and a light wind.
+
+non_diegetic_music: N/A`;
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMeta("/", HOME_META);

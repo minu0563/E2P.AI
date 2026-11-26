@@ -185,7 +185,7 @@ const ko = {
       dialogue: { label: "대사", hint: "비우면 대사 없음" },
       appearance: { label: "복장", hint: "예: 흰 셔츠와 청바지" },
       scene: { label: "장면·배경", hint: "예: 노을 지는 해변" },
-      camera: { label: "카메라", hint: "비우면 원본 구도 유지" },
+      camera: { label: "카메라", hint: "예: 천천히 다가가기, 차를 따라가기 (비우면 고정 카메라)" },
       lighting: { label: "조명·색감", hint: "예: 오후 자연광" },
       mood: { label: "스타일", hint: "비우면 실사는 현실적, 그림은 원본 화풍" },
       audio: { label: "사운드", hint: "예: 파도 소리, 배경 음악 없음" },

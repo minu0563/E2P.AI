@@ -27,6 +27,10 @@ export type Profile = {
   groups: { key: string; label: string; open: boolean }[];
   fields: { key: FieldKey; group: string; label: string; hint: string; tier: "basic" | "advanced" }[];
   paces: { key: Pace; label: string }[];
+  /** 시선 기본값: auto = 사용자가 말한 대로(말이 없으면 시선 문장 없음), camera = 항상 렌즈 응시 */
+  gaze?: "auto" | "camera";
+  /** 샷 안 시간 표기: sequential = 순서 서술(공식 예시 방식), timed = 구간 시간 표기 (A/B 비교용) */
+  segment_render?: "sequential" | "timed";
 };
 
 export const FIELD_KEYS: FieldKey[] = [

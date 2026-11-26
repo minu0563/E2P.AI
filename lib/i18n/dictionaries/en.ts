@@ -175,7 +175,7 @@ const en: Dictionary = {
       dialogue: { label: "Dialogue", hint: "Empty = no dialogue" },
       appearance: { label: "Outfit", hint: "e.g. White shirt and jeans" },
       scene: { label: "Scene", hint: "e.g. A beach at sunset" },
-      camera: { label: "Camera", hint: "Empty = keep original framing" },
+      camera: { label: "Camera", hint: "e.g. slow push in, follow the car (empty = static camera)" },
       lighting: { label: "Lighting & color", hint: "e.g. Afternoon daylight" },
       mood: { label: "Style", hint: "Empty = realistic for photos, original style for art" },
       audio: { label: "Sound", hint: "e.g. Waves, no background music" },

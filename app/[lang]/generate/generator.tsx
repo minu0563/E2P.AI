@@ -244,13 +244,13 @@ export function Generator({
           />
         )}
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
           {loadedNote && (
             <p className="border-l-2 border-accent bg-accent-soft px-3 py-2 text-xs leading-relaxed text-text">{loadedNote}</p>
           )}
 
           <div className={stepCls}>
-            <Label step={1}>{t.image}</Label>
+            <Label>{t.image}</Label>
             <ImageDrop
               file={file}
               maxBytes={limits.max_source_bytes}
@@ -264,7 +264,7 @@ export function Generator({
           </div>
 
           <div className={stepCls}>
-            <Label step={2}>
+            <Label>
               {t.motion}
               <Help label={t.helpLabel}>{mode === "natural" ? t.helpNatural : t.helpFields}</Help>
             </Label>
@@ -319,20 +319,20 @@ export function Generator({
             </div>
 
             {mode === "fields" && (
-              <div className="mt-4 border-t border-border">
+              <div className="mt-4 space-y-2">
                 {groups.map((g) => {
                   const gf = fields.filter((f) => f.group === g.key);
                   const filledCount = gf.filter((f) => values[f.key]?.trim()).length;
                   return (
-                    <details key={g.key} open={g.open} className="group border-b border-border">
-                      <summary className="flex cursor-pointer list-none items-center justify-between py-2.5 text-sm font-medium select-none">
+                    <details key={g.key} open={g.open} className="group rounded-md bg-bg/70 px-3">
+                      <summary className="flex cursor-pointer list-none items-center justify-between py-2.5 text-sm font-semibold select-none">
                         <span>{t.groups[g.key] ?? g.label}</span>
                         <span className="flex items-center gap-3 font-mono text-[11px] font-normal text-faint">
                           {filledCount > 0 && <span className="text-accent">{fmt(t.filledCount, { n: filledCount })}</span>}
                           <span className="transition group-open:rotate-45">+</span>
                         </span>
                       </summary>
-                      <div className="grid gap-3 pb-4 sm:grid-cols-2">
+                      <div className="grid gap-3 pb-3 sm:grid-cols-2">
                         {gf.map((f) => {
                           const isKey = f.key === "key_action";
                           const disabled = isKey && usePlaceholder;
@@ -371,7 +371,7 @@ export function Generator({
           </div>
 
           <div className={stepCls}>
-            <Label step={3}>{t.videoSettings}</Label>
+            <Label>{t.videoSettings}</Label>
             <span className="mb-1 flex items-center gap-1 text-xs text-muted">
               {t.pace}
               <Help label={t.helpLabel}>{t.helpPace}</Help>
@@ -418,7 +418,7 @@ export function Generator({
 
           {/* 4. 촬영 설정: 카메라 프리셋(공식 문장), 시선, 대사 방식. 항상 보이게 (비워 두면 자동) */}
           <div className={stepCls}>
-            <Label step={4} note={t.optional}>
+            <Label note={t.optional}>
               {t.direction}
               <Help label={t.helpLabel}>{t.helpDirection}</Help>
             </Label>
@@ -493,7 +493,7 @@ export function Generator({
           </div>
 
           {placeholderEnabled && (
-            <div className="flex items-center gap-2 border-t border-border pt-4 text-sm">
+            <div className="flex items-center gap-2 rounded-lg bg-surface-2 px-4 py-3 text-sm">
               <label className="flex flex-1 cursor-pointer items-center gap-2.5">
                 <input
                   type="checkbox"
@@ -721,20 +721,17 @@ function Help({
   );
 }
 
-function Label({ step, children, note }: { step: number; children: React.ReactNode; note?: string }) {
+function Label({ children, note }: { children: React.ReactNode; note?: string }) {
   return (
-    <h2 className="mb-3 flex items-center gap-2.5 text-[15px] font-semibold">
-      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft font-mono text-xs font-semibold text-accent">
-        {step}
-      </span>
+    <h2 className="mb-3 flex items-center gap-1.5 text-[15px] font-semibold">
       {children}
       {note && <span className="ml-auto text-xs font-normal text-faint">{note}</span>}
     </h2>
   );
 }
 
-/** 단계 사이 구분선 (첫 단계 위에는 없음) */
-const stepCls = "border-t border-border pt-6 first:border-t-0 first:pt-0";
+/** 섹션: 연한 배경으로 구분 (입력칸은 bg-surface라 배경 위에서 또렷하게 보인다) */
+const stepCls = "rounded-lg bg-surface-2 p-4 sm:p-5";
 
 /** NDJSON 스트림을 읽어 단계는 표시하고 마지막 결과를 돌려준다 */
 async function readStream(

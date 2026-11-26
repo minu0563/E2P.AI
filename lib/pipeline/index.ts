@@ -82,6 +82,8 @@ export type PipelineResult =
       notices: string[];
       meta: { shot_type: string; viewpoint: string };
       timings: { totalMs: number };
+      /** 생성은 됐지만 차단과 같게 기록할 사유 (노골적 요청 중화 → 연속 차단 집계). 서버 내부용, 응답에서 뺀다 */
+      abuseCode?: BlockCode;
       debug?: string[];
     }
   | { ok: false; requestId: string; code: BlockCode; message: string; debug?: string[] };
@@ -196,7 +198,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   };
 
   // [4a] 모든 입력칸을 같은 키워드 검사에 (모델 호출 전)
-  const pre = precheck(scan);
+  const pre = precheck(scan, config.explicit_request);
   if (pre) return fail(pre, { scan });
 
   // 우회 루프 차단
@@ -262,9 +264,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   // [4b] 규칙 엔진
   const cfg: SafetyConfig = input.safetyMode === "shadow" ? { ...config, mode: "shadow" } : config;
-  decision = decide(analysis, scan, cfg, { placeholder: input.placeholder });
+  decision = decide(analysis, scan, cfg, { placeholder: input.placeholder, dialogue: input.fields.dialogue });
   if (decision.action === "block") return fail(decision.code!, { decision: decision.internal });
   const neutralize = decision.action === "neutralize";
+  const explicitNeutralized = decision.explicitNeutralized;
+  // 노골적 요청을 중화했으면 차단 때와 같게: 이 이미지는 24시간 빈칸 모드 금지 (우회 루프 차단)
+  if (explicitNeutralized) {
+    markBlocked(input.image.hash).catch((e) => console.error("[pipeline] markBlocked failed", String(e).slice(0, 200)));
+  }
   const a = analysis!;
   if (await input.isCancelled?.()) return fail("SYSTEM_ERROR", { cancelled: true });
   input.onStage?.("writing");
@@ -304,7 +311,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     ...((neutralize || decision.ageAmbiguous) && {
       note: decision.ageAmbiguous
         ? "Describe only everyday, non-sexual actions with neutral wording. Do not describe the body, do not change or reveal clothing, keep the outfit exactly as in the image."
-        : "Describe every motion and outfit in neutral, everyday, non-sexual terms. Drop any sexualized nuance from the request.",
+        : explicitNeutralized
+          ? "The request contains sexual content that must not be followed. Ignore every sexual, nude or undressing element entirely. Keep only harmless everyday motion that fits the image (or calm natural movement if nothing harmless remains). Keep the outfit exactly as in the image, never remove or loosen clothing, and never describe the body."
+          : "Describe every motion and outfit in neutral, everyday, non-sexual terms. Drop any sexualized nuance from the request.",
     }),
   };
   const ctx = {
@@ -319,7 +328,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     allowFrameExtension: wantsFrameExtension([input.request, input.fields.key_action, input.fields.camera]),
   };
 
-  const inputWasSuggestive = a.request_level === "suggestive" || scan.suggestive.length > 0;
+  // 노골적 요청을 중화한 경우엔 출력에 암시적 표현도 허용하지 않는다(더 엄격하게)
+  const inputWasSuggestive = !explicitNeutralized && (a.request_level === "suggestive" || scan.suggestive.length > 0);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const r = await client.chat({
@@ -381,6 +391,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         notices: neutralize ? [NEUTRALIZED_NOTICE] : [],
         meta: { shot_type: a.shot_type, viewpoint: a.viewpoint },
         timings: { totalMs },
+        ...(explicitNeutralized && { abuseCode: "SEXUAL_REQUEST" as const }),
         ...(DEV && {
           debug: [
             `${decision.action}${decision.ageAmbiguous ? " (연령 애매 → 일상 요청이라 조건부 허용)" : ""}${decision.wouldBe.action !== decision.action ? ` (shadow: enforce였다면 ${decision.wouldBe.action} ${decision.wouldBe.code ?? ""})` : ""}`,

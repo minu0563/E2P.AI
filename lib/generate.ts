@@ -150,6 +150,13 @@ export async function runGeneration(
     if (result.ok) {
       await confirmCredits(j.userId, j.requestId);
       await writeLog(j, "ok", null, j.test ? 0 : cost, usage, judgment, result.prompt);
+      // 노골적 요청을 중화해 생성한 경우도 연속 차단 집계에 넣는다 (반복 시도 → 경고·일시 제한)
+      if (result.abuseCode && !j.noRecord) {
+        abuseNotice = await recordBlock(j.userId, result.abuseCode).catch((e) => {
+          console.error("[abuse] record failed", String(e).slice(0, 200));
+          return null;
+        });
+      }
     } else {
       const s = await settleBlocked(j.userId, j.requestId, result.code);
       creditNotice = s.blockFee ? "blockFee" : s.blockWarn ? "blockWarn" : null;
@@ -163,7 +170,10 @@ export async function runGeneration(
       }
     }
     const { total } = await getBalance(j.userId);
-    return { ...result, balance: total, creditNotice, abuseNotice };
+    // abuseCode는 내부 집계용 → 응답에 넣지 않는다 (판정 라벨 비노출)
+    const { abuseCode: _abuse, ...pub } = result.ok ? result : { ...result, abuseCode: undefined };
+    void _abuse;
+    return { ...pub, balance: total, creditNotice, abuseNotice };
   } catch (e) {
     console.error("[generate] unexpected", String(e).slice(0, 300));
     await releaseCredits(j.userId, j.requestId, "error").catch(() => {});

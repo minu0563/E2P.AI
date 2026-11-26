@@ -237,7 +237,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   };
   const classifyRequest = async (): Promise<RequestClass | null> => {
     const texts = [input.request, ...FIELD_KEYS.map((k) => input.fields[k])].filter((t) => t.trim());
-    if (!texts.length) return { request_level: "general", third_party_claim: false }; // 받은 글이 없다
+    if (!texts.length) return { request_level: "general", third_party_claim: false, sexual_contact: false }; // 받은 글이 없다
     try {
       const r = await client.chat({
         model: models.main(),
@@ -312,8 +312,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       note: decision.ageAmbiguous
         ? "Describe only everyday, non-sexual actions with neutral wording. Do not describe the body, do not change or reveal clothing, keep the outfit exactly as in the image."
         : explicitNeutralized
-          ? "The request contains sexual content that must not be followed. Ignore every sexual, nude or undressing element entirely. Keep only harmless everyday motion that fits the image (or calm natural movement if nothing harmless remains). Keep the outfit exactly as in the image, never remove or loosen clothing, and never describe the body."
-          : "Describe every motion and outfit in neutral, everyday, non-sexual terms. Drop any sexualized nuance from the request.",
+          ? "The request contains sexual content that must not be followed. Ignore every sexual, nude or undressing element entirely. Keep only harmless everyday motion that fits the image (or calm natural movement if nothing harmless remains). Keep the outfit exactly as in the image, never remove or loosen clothing, never describe the body or body parts (hips, buttocks, chest, thighs), and do not add anyone touching the person's body."
+          : "Describe every motion and outfit in neutral, everyday, non-sexual terms. Drop any sexualized nuance from the request. Do not mention body parts such as hips, buttocks, chest or thighs, and do not add anyone touching the person's body.",
     }),
   };
   const ctx = {
@@ -355,7 +355,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       const prompt = assemblePrompt(blocks, ctx);
 
       // [6] 출력 검사
-      const violations = checkOutput({ profile, prompt, mode: keyMode, inputWasSuggestive });
+      const violations = checkOutput({ profile, prompt, mode: keyMode, inputWasSuggestive, neutralized: neutralize });
       if (violations.length) {
         stages.push({ stage: `output_check#${attempt + 1}`, violations });
         continue;

@@ -4,7 +4,7 @@
  */
 import * as z from "zod";
 import type { FieldKey, Pace, Profile } from "@/lib/profile";
-import { EXPLICIT, SUGGESTIVE, matchList } from "@/system/safety/keywords";
+import { BODY_FOCUS, EXPLICIT, SUGGESTIVE, matchList } from "@/system/safety/keywords";
 
 export type Fields = Record<FieldKey, string>;
 export type KeyActionMode = "user" | "placeholder" | "auto";
@@ -161,6 +161,8 @@ export type OutputViolation =
   | "PLACEHOLDER_UNEXPECTED"
   | "EXPLICIT_OUTPUT"
   | "ESCALATED"
+  /** 중화한 요청인데 결과에 엉덩이·가슴·허벅지 등 신체 부위가 나옴 */
+  | "BODY_FOCUS"
   | "TOO_LONG"
   | "EMPTY";
 
@@ -173,8 +175,10 @@ export function checkOutput(args: {
   prompt: string;
   mode: KeyActionMode;
   inputWasSuggestive: boolean;
+  /** 중화한 요청이면 신체 부위 단어도 막는다 */
+  neutralized?: boolean;
 }): OutputViolation[] {
-  const { profile, prompt, mode, inputWasSuggestive } = args;
+  const { profile, prompt, mode, inputWasSuggestive, neutralized = false } = args;
   const v: OutputViolation[] = [];
   const ph = profile.placeholder;
   const count = prompt.split(ph).length - 1;
@@ -186,6 +190,7 @@ export function checkOutput(args: {
   const text = prompt.split(ph).join(" ");
   if (matchList(text, EXPLICIT).length) v.push("EXPLICIT_OUTPUT");
   if (!inputWasSuggestive && matchList(text, SUGGESTIVE).length) v.push("ESCALATED");
+  if (neutralized && matchList(text, BODY_FOCUS).length) v.push("BODY_FOCUS");
   if (prompt.length > profile.max_output_chars) v.push("TOO_LONG");
   return v;
 }

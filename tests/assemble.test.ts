@@ -157,3 +157,16 @@ describe("프레임 확장(전신 보이기)은 사용자가 요청했을 때만
     }
   });
 });
+
+describe("중화한 요청의 출력 검사 (BODY_FOCUS)", () => {
+  it("중화했으면 신체 부위 단어가 나오면 위반, 아니면 통과", async () => {
+    const { checkOutput } = await import("@/lib/pipeline/assemble");
+    const { getProfile, DEFAULT_PROFILE } = await import("@/lib/profile");
+    const profile = getProfile(DEFAULT_PROFILE)!;
+    const body = "[Scene-by-scene]\n0–3s: she turns around, extending her hips backward.";
+    const ok = "[Scene-by-scene]\n0–3s: she turns around and walks to a hip-hop beat in a bust shot.";
+    expect(checkOutput({ profile, prompt: body, mode: "auto", inputWasSuggestive: false, neutralized: true })).toContain("BODY_FOCUS");
+    expect(checkOutput({ profile, prompt: body, mode: "auto", inputWasSuggestive: false, neutralized: false })).not.toContain("BODY_FOCUS");
+    expect(checkOutput({ profile, prompt: ok, mode: "auto", inputWasSuggestive: false, neutralized: true })).not.toContain("BODY_FOCUS");
+  });
+});

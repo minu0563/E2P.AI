@@ -81,8 +81,10 @@ const NONE = /^(none|n\/?a|no( background)? music|없음|-)?\.?$/i;
 const sentence = (s: string) => {
   const t = s.trim().replace(/\s+/g, " ");
   if (!t) return "";
+  // 문장 첫 글자는 대문자로 ("outdoors, daytime" → "Outdoors, daytime")
+  const c = /^[a-z]/.test(t) ? t[0].toUpperCase() + t.slice(1) : t;
   // 대사 블록(</d>)으로 끝나면 마침표를 붙이지 않는다 (원문 문장부호를 그대로 둔다)
-  return /([.!?'"]|<\/d>)$/.test(t) ? t : `${t}.`;
+  return /([.!?'"]|<\/d>)$/.test(c) ? c : `${c}.`;
 };
 
 /** 구간 정리: 0초 시작, 영상 길이 안으로 자르고 마지막 구간을 길이에 맞춘다 */

@@ -267,3 +267,10 @@ describe("프레임 확장(전신 보이기)은 사용자가 요청했을 때만
     }
   });
 });
+
+describe("문장 첫 글자", () => {
+  it("모델이 소문자로 시작해도 대문자로", () => {
+    const p = assemblePrompt({ ...blocks, location: "outdoors, daytime, near a building wall" }, photo);
+    expect(p).toContain(" Outdoors, daytime, near a building wall.");
+  });
+});

@@ -198,6 +198,8 @@ const ko = {
     aspect: "화면 비율",
     aspectNone: "지정 안 함",
     direction: "촬영 설정",
+    videoSettings: "영상 길이·속도",
+    optional: "선택 · 비워 두면 자동",
     helpDirection: "카메라를 고르면 공식 카메라 문법 문장이 그대로 들어갑니다. '자동'이면 요청에 쓴 대로(아무 말이 없으면 고정) 정합니다.",
     camera: "카메라 움직임",
     cameraMotions: {

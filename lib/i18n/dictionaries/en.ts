@@ -189,6 +189,8 @@ const en: Dictionary = {
     aspect: "Aspect ratio",
     aspectNone: "Not set",
     direction: "Shot settings",
+    videoSettings: "Length & pacing",
+    optional: "Optional · auto if left as is",
     helpDirection: "A camera preset inserts an official camera-grammar sentence as is. 'Auto' follows your request (static if you say nothing).",
     camera: "Camera movement",
     cameraMotions: {

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { safetyConfig } from "@/system/config";
 import { callLimits, getInferenceClient, models, type ChatRequest, type ChatResult } from "@/lib/inference";
 import { FIELD_KEYS, type Pace, type Profile } from "@/lib/profile";
+import { cameraSentence, type CameraPreset } from "@/lib/camera";
 import {
   ImageAnalysisSchema,
   RequestClassSchema,
@@ -48,6 +49,8 @@ export type PipelineInput = {
   dialogueMode?: "on_screen" | "voiceover";
   /** 시선 (기본: 프로필 → auto) */
   gaze?: "auto" | "camera";
+  /** 카메라 프리셋 (auto면 요청·카메라 칸대로) */
+  camera?: CameraPreset;
   /** 진행 단계 알림 (큐 진행 상태 표시용) */
   onStage?: (stage: "analyzing" | "writing") => void;
   /** 사용자가 취소했는지. 분석이 끝난 뒤 확인해 생성 호출을 아낀다 */
@@ -288,9 +291,12 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       : "auto";
 
   const guide = loadGuide(profile);
-  const userFields = Object.fromEntries(
+  const userFields: Record<string, string> = Object.fromEntries(
     FIELD_KEYS.filter((k) => input.fields[k].trim()).map((k) => [k, input.fields[k].trim()]),
   );
+  // 카메라 프리셋: 코드가 공식 문장을 만들고 모델 결과를 덮어쓴다 (모델에게도 알려 동작과 어긋나지 않게)
+  const presetCamera = input.camera ? cameraSentence(input.camera) : null;
+  if (presetCamera) userFields.camera = presetCamera;
   const payload = {
     key_action_mode: keyMode,
     duration_seconds: input.duration,
@@ -357,6 +363,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       let blocks: Blocks;
       try {
         blocks = BlocksSchema.parse(JSON.parse(r.content));
+        if (presetCamera) blocks = { ...blocks, camera: presetCamera };
       } catch (e) {
         stages.push({ stage: `parse#${attempt + 1}`, error: String(e).slice(0, 200), head: r.content.slice(0, 120), tail: r.content.slice(-80) });
         continue;

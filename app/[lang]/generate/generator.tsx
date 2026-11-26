@@ -1,5 +1,6 @@
 "use client";
 
+import { CAMERA_AMPLITUDES, CAMERA_MOTIONS, CAMERA_SPEEDS, type CameraAmplitude, type CameraMotion, type CameraSpeed } from "@/lib/camera";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { HistoryItem } from "@/lib/history";
@@ -51,6 +52,13 @@ export function Generator({
   const [duration, setDuration] = useState(durationSpec.default);
   const [aspectRatio, setAspectRatio] = useState("");
   const [pace, setPace] = useState<Pace>("normal");
+  const [cameraMotion, setCameraMotion] = useState<CameraMotion>("auto");
+  const [cameraAmplitude, setCameraAmplitude] = useState<CameraAmplitude>("normal");
+  const [cameraSpeed, setCameraSpeed] = useState<CameraSpeed>("normal");
+  const [gaze, setGaze] = useState<"auto" | "camera">("auto");
+  const [dialogueMode, setDialogueMode] = useState<"on_screen" | "voiceover">("on_screen");
+  // 고정·흔들림·1인칭·자동은 폭·속도가 없다
+  const cameraModifiable = !["auto", "static", "shake_slight", "shake_strong", "pov"].includes(cameraMotion);
   const [mode, setMode] = useState<InputMode>("natural");
   const [request, setRequest] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
@@ -90,6 +98,11 @@ export function Generator({
       setDuration(i.duration ?? durationSpec.default);
       setAspectRatio(i.aspectRatio ?? "");
       setUsePlaceholder(!!i.placeholder);
+      setCameraMotion(i.camera?.motion ?? "auto");
+      setCameraAmplitude(i.camera?.amplitude ?? "normal");
+      setCameraSpeed(i.camera?.speed ?? "normal");
+      setGaze(i.gaze ?? "auto");
+      setDialogueMode(i.dialogueMode ?? "on_screen");
     } else {
       setMode("natural");
       setRequest(item.requestText);
@@ -134,6 +147,11 @@ export function Generator({
     setPace("normal");
     setDuration(durationSpec.default);
     setAspectRatio("");
+    setCameraMotion("auto");
+    setCameraAmplitude("normal");
+    setCameraSpeed("normal");
+    setGaze("auto");
+    setDialogueMode("on_screen");
     setAutoFilled({});
     setResult(null);
     setLoadedNote(null);
@@ -155,6 +173,11 @@ export function Generator({
     form.set("duration", String(duration));
     form.set("aspectRatio", aspectRatio);
     form.set("pace", pace);
+    form.set("cameraMotion", cameraMotion);
+    form.set("cameraAmplitude", cameraAmplitude);
+    form.set("cameraSpeed", cameraSpeed);
+    form.set("gaze", gaze);
+    form.set("dialogueMode", dialogueMode);
     if (usePlaceholder) form.set("placeholder", "on");
     if (mode === "fields") {
       for (const f of fields) form.set(`field.${f.key}`, values[f.key] ?? "");
@@ -390,6 +413,85 @@ export function Generator({
                 </select>
               </label>
             </div>
+
+            {/* 연출: 카메라 프리셋(공식 문장), 시선, 대사 방식 */}
+            <details className="group mt-4 border-t border-border" open={cameraMotion !== "auto" || gaze !== "auto" || dialogueMode !== "on_screen"}>
+              <summary className="flex cursor-pointer list-none items-center justify-between py-2.5 text-sm font-medium select-none">
+                <span className="flex items-center gap-1">
+                  {t.direction}
+                  <Help label={t.helpLabel}>{t.helpDirection}</Help>
+                </span>
+                <span className="font-mono text-[11px] font-normal text-faint transition group-open:rotate-45">+</span>
+              </summary>
+              <div className="grid gap-3 pb-2 sm:grid-cols-3">
+                <label className="sm:col-span-3">
+                  <span className="mb-1 block text-xs text-muted">{t.camera}</span>
+                  <select value={cameraMotion} onChange={(e) => setCameraMotion(e.target.value as CameraMotion)} className={inputCls}>
+                    {CAMERA_MOTIONS.map((m) => (
+                      <option key={m} value={m}>
+                        {t.cameraMotions[m] ?? m}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span className="mb-1 block text-xs text-muted">{t.cameraAmplitude}</span>
+                  <select
+                    value={cameraAmplitude}
+                    disabled={!cameraModifiable}
+                    onChange={(e) => setCameraAmplitude(e.target.value as CameraAmplitude)}
+                    className={`${inputCls} disabled:opacity-50`}
+                  >
+                    {CAMERA_AMPLITUDES.map((a) => (
+                      <option key={a} value={a}>
+                        {t.cameraAmplitudes[a] ?? a}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span className="mb-1 block text-xs text-muted">{t.cameraSpeed}</span>
+                  <select
+                    value={cameraSpeed}
+                    disabled={!cameraModifiable}
+                    onChange={(e) => setCameraSpeed(e.target.value as CameraSpeed)}
+                    className={`${inputCls} disabled:opacity-50`}
+                  >
+                    {CAMERA_SPEEDS.map((sp) => (
+                      <option key={sp} value={sp}>
+                        {t.cameraSpeeds[sp] ?? sp}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span className="mb-1 block text-xs text-muted">{t.gaze}</span>
+                  <select value={gaze} onChange={(e) => setGaze(e.target.value as "auto" | "camera")} className={inputCls}>
+                    {(["auto", "camera"] as const).map((g) => (
+                      <option key={g} value={g}>
+                        {t.gazes[g] ?? g}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {mode === "fields" && (
+                  <label className="sm:col-span-3">
+                    <span className="mb-1 block text-xs text-muted">{t.dialogueMode}</span>
+                    <select
+                      value={dialogueMode}
+                      onChange={(e) => setDialogueMode(e.target.value as "on_screen" | "voiceover")}
+                      className={inputCls}
+                    >
+                      {(["on_screen", "voiceover"] as const).map((d) => (
+                        <option key={d} value={d}>
+                          {t.dialogueModes[d] ?? d}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            </details>
           </div>
 
           {placeholderEnabled && (

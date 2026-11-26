@@ -2,6 +2,7 @@ import appConfig from "@/config/app.json";
 import { isRestricted } from "@/lib/abuse";
 import { checkBudget } from "@/lib/ai-budget";
 import { ImageError, validateImage } from "@/lib/image";
+import { parseCameraPreset } from "@/lib/camera";
 import type { Fields } from "@/lib/pipeline/assemble";
 import { DEFAULT_PROFILE, FIELD_KEYS, PACES, getProfile, type Pace } from "@/lib/profile";
 import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
@@ -94,6 +95,10 @@ export async function POST(request: Request) {
   const aspectRatio = profile.aspect_ratios.includes(ratioRaw) ? ratioRaw : "";
   const paceRaw = String(form.get("pace") ?? "normal");
   const pace: Pace = (PACES as string[]).includes(paceRaw) ? (paceRaw as Pace) : "normal";
+  // 연출 설정 (목록에 없는 값은 기본값). 카메라 프리셋은 코드가 공식 문장으로 바꾼다
+  const camera = parseCameraPreset(form.get("cameraMotion"), form.get("cameraAmplitude"), form.get("cameraSpeed"));
+  const gaze = form.get("gaze") === "camera" ? "camera" : "auto";
+  const dialogueMode = form.get("dialogueMode") === "voiceover" ? "voiceover" : "on_screen";
 
   let image;
   try {
@@ -136,6 +141,9 @@ export async function POST(request: Request) {
     duration,
     aspectRatio,
     pace,
+    camera,
+    gaze,
+    dialogueMode,
   };
 
   // 사용자가 취소하거나 연결이 끊기면: 남은 추론을 건너뛰고 크레딧 반환
@@ -162,7 +170,7 @@ export async function POST(request: Request) {
           // 관리자 계정은 생성 기록·이미지를 저장하지 않는다
           noRecord: isAdminEmail(user.email),
           profile,
-          input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace },
+          input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace, camera, gaze, dialogueMode },
           image,
           savedInput,
         },

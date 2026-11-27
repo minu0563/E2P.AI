@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
+import { fmt } from "@/lib/i18n/format";
 import type { FieldKey } from "@/lib/profile";
 
 export type Result =
@@ -11,6 +12,7 @@ export type Result =
       requestId: string;
       prompt: string;
       filled: Partial<Record<FieldKey, string>>;
+      /** 안내 코드 (neutralized, dialogue_long). 모르는 코드는 표시하지 않는다 */
       notices: string[];
       meta: { shot_type: string; viewpoint: string };
       timings: { totalMs: number };
@@ -65,6 +67,7 @@ export function ResultPanel({
   progress,
   onRegenerate,
   canRegenerate,
+  settings,
   t,
 }: {
   result: Result | null;
@@ -73,6 +76,8 @@ export function ResultPanel({
   progress?: Progress | null;
   onRegenerate: () => void;
   canRegenerate: boolean;
+  /** 생성할 때 고른 길이·비율 (H3에서 같게 맞추도록 안내) */
+  settings?: { duration: number; aspectRatio: string } | null;
   t: Dictionary["result"];
 }) {
   const [copied, setCopied] = useState(false);
@@ -132,9 +137,14 @@ export function ResultPanel({
 
         {!loading && result?.ok && (
           <div className="flex flex-col gap-3">
-            {result.notices.length > 0 && (
-              <p className="border-l-2 border-warn bg-warn-soft px-3 py-2 text-xs text-warn">{t.neutralized}</p>
-            )}
+            {result.notices
+              .map((n) => (n === "neutralized" ? t.neutralized : n === "dialogue_long" ? t.dialogueLong : null))
+              .filter(Boolean)
+              .map((msg) => (
+                <p key={msg} className="border-l-2 border-warn bg-warn-soft px-3 py-2 text-xs text-warn">
+                  {msg}
+                </p>
+              ))}
 
             <pre className="max-h-[30rem] overflow-auto border-l-2 border-accent bg-bg p-4 font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap">
               {result.prompt}
@@ -178,6 +188,12 @@ export function ResultPanel({
               )}
             </div>
 
+            {settings && (
+              <p className="text-xs text-muted">
+                {t.settings}: {fmt(t.seconds, { n: settings.duration })}
+                {settings.aspectRatio && ` · ${settings.aspectRatio}`}
+              </p>
+            )}
             {!result.loaded && (
               <p className="font-mono text-[11px] text-faint">
                 {t.analyzed}: {t.shot[result.meta.shot_type] ?? "-"} · {t.view[result.meta.viewpoint] ?? "-"} ·{" "}

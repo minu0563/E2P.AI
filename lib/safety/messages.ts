@@ -38,4 +38,3 @@ export const BLOCK_MESSAGES: Record<BlockCode, string> = {
   POLICY_ACK_REQUIRED: "처음 생성하기 전에 이용약관과 허용 가능 이용 정책을 확인해 주세요.",
 };
 
-export const NEUTRALIZED_NOTICE = "일부 표현이 조정되었습니다.";

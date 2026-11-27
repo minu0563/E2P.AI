@@ -86,6 +86,7 @@ async function writeLog(
             personCentric: img?.person_centric ?? null,
             keywords: judgment.keywords,
             rule: judgment.rule,
+            ...(judgment.quality && { quality: judgment.quality }),
           } as Prisma.InputJsonValue,
         }),
       },

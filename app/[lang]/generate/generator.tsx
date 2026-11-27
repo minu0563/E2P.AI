@@ -7,6 +7,7 @@ import type { HistoryItem } from "@/lib/history";
 import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
 import { fmt, fmtDate } from "@/lib/i18n/format";
 import type { FieldKey, Pace, Profile } from "@/lib/profile";
+import { nearestRatio } from "@/lib/aspect";
 import { ImageDrop } from "./image-drop";
 import { ResultPanel, type Progress, type Result } from "./result-panel";
 
@@ -51,6 +52,10 @@ export function Generator({
   const [file, setFile] = useState<File | null>(null);
   const [duration, setDuration] = useState(durationSpec.default);
   const [aspectRatio, setAspectRatio] = useState("");
+  // 사용자가 비율을 직접 고르기 전까지는 사진 비율에 맞춰 자동으로 고른다
+  const [aspectAuto, setAspectAuto] = useState(true);
+  // 결과 옆에 보여 줄 H3 설정 (생성할 때의 길이·비율)
+  const [settings, setSettings] = useState<{ duration: number; aspectRatio: string } | null>(null);
   const [pace, setPace] = useState<Pace>("normal");
   const [cameraMotion, setCameraMotion] = useState<CameraMotion>("auto");
   const [cameraAmplitude, setCameraAmplitude] = useState<CameraAmplitude>("normal");
@@ -97,6 +102,8 @@ export function Generator({
       setPace(i.pace ?? "normal");
       setDuration(i.duration ?? durationSpec.default);
       setAspectRatio(i.aspectRatio ?? "");
+      setAspectAuto(!i.aspectRatio);
+      setSettings({ duration: i.duration ?? durationSpec.default, aspectRatio: i.aspectRatio ?? "" });
       setUsePlaceholder(!!i.placeholder);
       setCameraMotion(i.camera?.motion ?? "auto");
       setCameraAmplitude(i.camera?.amplitude ?? "normal");
@@ -147,6 +154,8 @@ export function Generator({
     setPace("normal");
     setDuration(durationSpec.default);
     setAspectRatio("");
+    setAspectAuto(true);
+    setSettings(null);
     setCameraMotion("auto");
     setCameraAmplitude("normal");
     setCameraSpeed("normal");
@@ -172,6 +181,7 @@ export function Generator({
     form.set("request", request);
     form.set("duration", String(duration));
     form.set("aspectRatio", aspectRatio);
+    setSettings({ duration, aspectRatio });
     form.set("pace", pace);
     form.set("cameraMotion", cameraMotion);
     form.set("cameraAmplitude", cameraAmplitude);
@@ -259,6 +269,14 @@ export function Generator({
               onChange={(f) => {
                 setFile(f);
                 setAutoFilled({});
+                if (f && aspectAuto) {
+                  createImageBitmap(f)
+                    .then((b) => {
+                      setAspectRatio(nearestRatio(b.width, b.height, aspectRatios));
+                      b.close();
+                    })
+                    .catch(() => {});
+                }
               }}
             />
           </div>
@@ -403,8 +421,18 @@ export function Generator({
                 </select>
               </label>
               <label>
-                <span className="mb-1 block text-xs text-muted">{t.aspect}</span>
-                <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className={inputCls}>
+                <span className="mb-1 block text-xs text-muted">
+                  {t.aspect}
+                  {aspectAuto && aspectRatio && <span className="ml-1 text-faint">· {t.aspectFromImage}</span>}
+                </span>
+                <select
+                  value={aspectRatio}
+                  onChange={(e) => {
+                    setAspectRatio(e.target.value);
+                    setAspectAuto(false);
+                  }}
+                  className={inputCls}
+                >
                   <option value="">{t.aspectNone}</option>
                   {aspectRatios.map((r) => (
                     <option key={r} value={r}>
@@ -523,7 +551,7 @@ export function Generator({
         {!file && <p className="mt-2 text-xs text-faint">{t.needImage}</p>}
       </section>
 
-      <ResultPanel result={result} loading={loading} elapsed={elapsed} progress={progress} onRegenerate={submit} canRegenerate={!!file} t={tr} />
+      <ResultPanel result={result} loading={loading} elapsed={elapsed} progress={progress} onRegenerate={submit} canRegenerate={!!file} settings={settings} t={tr} />
       {ackOpen && (
         <PolicyAck
           t={t.ack}

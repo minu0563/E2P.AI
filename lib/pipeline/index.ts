@@ -15,7 +15,7 @@ import {
 } from "@/system/safety/analysis-schema";
 import { decide, precheck, scanTexts, type Decision, type SafetyConfig } from "@/system/safety/engine";
 import { markBlocked, wasBlocked } from "@/system/safety/history";
-import { BLOCK_MESSAGES, NEUTRALIZED_NOTICE, type BlockCode } from "@/lib/safety/messages";
+import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
 import {
   BlocksSchema,
   assemblePrompt,
@@ -26,6 +26,7 @@ import {
   type Fields,
   type KeyActionMode,
 } from "./assemble";
+import { checkQuality, type QualityWarning } from "./quality";
 import { GUIDES } from "@/system/guides";
 import { ANALYSIS_SYSTEM, ANALYSIS_USER, REQUEST_SYSTEM, generationSystem, requestUser } from "@/system/prompts";
 
@@ -77,6 +78,8 @@ export type Judgment = {
     /** 규칙 엔진 뒤에 막힌 경우의 최종 사유 (출력 검사·생성 실패·취소) */
     finalCode?: string;
   } | null;
+  /** 출력 품질 경고 (기록만, 결과는 그대로 냄) */
+  quality?: QualityWarning[];
 };
 
 export type PipelineResult =
@@ -86,7 +89,8 @@ export type PipelineResult =
       prompt: string;
       /** 항목별 입력 칸 회색 미리보기용 (자동으로 채워진 값) */
       filled: Partial<Fields>;
-      notices: string[];
+      /** 안내 코드 (화면이 언어별 문구로 바꾼다): neutralized = 일부 표현 조정, dialogue_long = 대사가 김 */
+      notices: ("neutralized" | "dialogue_long")[];
       meta: { shot_type: string; viewpoint: string };
       timings: { totalMs: number };
       /** 생성은 됐지만 차단과 같게 기록할 사유 (노골적 요청 중화 → 연속 차단 집계). 서버 내부용, 응답에서 뺀다 */
@@ -121,6 +125,7 @@ function debugLines(
   for (const s of stages) {
     if ("error" in s) out.push(`${s.stage} 오류: ${String(s.error).slice(0, 160)}`);
     else if ("violations" in s) out.push(`${s.stage}: ${(s.violations as string[]).join(", ")}`);
+    else if ("warnings" in s) out.push(`품질 경고(기록만): ${(s.warnings as string[]).join(", ")}`);
     else if (s.stage === "analysis_parse" && !s.head) out.push("분석 출력이 비어 있음 (생각 토큰이 한도를 다 씀)");
     else if ("model" in s) {
       out.push(`${s.stage}: ${s.model} 출력 ${s.outputTokens}토큰, ${(Number(s.totalMs) / 1000).toFixed(1)}초 (로드 ${(Number(s.loadMs ?? 0) / 1000).toFixed(1)}초)`);
@@ -170,6 +175,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   // 판정값은 한 번만 알린다 (차단·성공 어느 쪽이든)
   let judged = false;
+  let quality: QualityWarning[] = [];
   const emitJudgment = (blockCode?: BlockCode) => {
     if (judged || !input.onJudgment) return;
     judged = true;
@@ -186,6 +192,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         : blockCode
           ? { action: "block", code: blockCode, flags: {} }
           : null,
+      ...(quality.length && { quality }),
     });
   };
 
@@ -377,6 +384,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         continue;
       }
 
+      // [6b] 품질 검사: 기록만 (빈도를 본 뒤 재생성 여부를 정한다)
+      quality = checkQuality(blocks, ctx, {
+        userTexts: [input.request, ...FIELD_KEYS.map((k) => input.fields[k])],
+        notVisibleBodyParts: a.not_visible_body_parts,
+        imageFacts: [a.scene, a.lighting, a.subject],
+      });
+      if (quality.length) stages.push({ stage: "quality", warnings: quality });
+
       const totalMs = Date.now() - t0;
       emitJudgment();
       // [7] 로그
@@ -404,7 +419,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
           lighting: blocks.lighting,
           audio: blocks.soundscape,
         },
-        notices: neutralize ? [NEUTRALIZED_NOTICE] : [],
+        notices: [
+          ...(neutralize ? (["neutralized"] as const) : []),
+          ...(quality.includes("DIALOGUE_TOO_LONG") ? (["dialogue_long"] as const) : []),
+        ],
         meta: { shot_type: a.shot_type, viewpoint: a.viewpoint },
         timings: { totalMs },
         ...(explicitNeutralized && { abuseCode: "SEXUAL_REQUEST" as const }),

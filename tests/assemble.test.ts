@@ -306,6 +306,19 @@ describe("시작·끝 이미지 (FL2VA)", () => {
     expect(ok(p)).toEqual([]);
   });
 
+  it("동작 안의 카메라 문장은 지운다 (카메라 문장은 한 곳만)", () => {
+    const b = { ...blocks, segments: [{ start: 0, end: 8, action: "She turns. The camera pushes in slowly toward her. Then she waves." }] };
+    const d = assemblePrompt(b, photo).split("\n")[2];
+    expect(d).toContain("The camera stays static. She turns. Then she waves.");
+    expect(d.match(/The camera/g)).toHaveLength(1);
+  });
+
+  it("사람이 중심이 아니면 빈칸 앞에 지칭어를 붙이지 않는다", () => {
+    const p = assemblePrompt({ ...blocks, subject_noun: "none" }, { ...photo, personCentric: false, keyMode: "placeholder" });
+    expect(p).toContain(`Then ${profile.placeholder}`);
+    expect(p).not.toContain("the subject");
+  });
+
   it("subject에 지칭어가 들어 있어도 한 번만", () => {
     const d = assemblePrompt({ ...blocks, subject: "the man in <Picture 1> wears black-rimmed glasses" }, photo).split("\n")[2];
     expect(d).toContain("Live-action, the woman in <Picture 1> wears black-rimmed glasses.");

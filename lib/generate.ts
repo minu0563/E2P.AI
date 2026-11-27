@@ -147,7 +147,7 @@ function storeImageLater(j: GenerationJob, tier: ImageTier) {
 
 export async function runGeneration(
   j: GenerationJob,
-  opts: { onStage?: (s: "analyzing" | "writing") => void; isCancelled: () => boolean },
+  opts: { onStage?: (s: "analyzing" | "writing") => void; isCancelled: () => boolean; signal?: AbortSignal },
 ): Promise<GenerationResult> {
   const cost = j.cost ?? CREDIT_CONFIG.cost.generate;
   const usage = emptyUsage();
@@ -170,6 +170,7 @@ export async function runGeneration(
       onUsage: (r) => addUsage(usage, r),
       onJudgment: (x) => (judgment = x),
       isCancelled: async () => opts.isCancelled(),
+      signal: opts.signal,
     });
     if (opts.isCancelled()) return await cancelled();
 

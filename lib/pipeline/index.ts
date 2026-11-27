@@ -60,6 +60,8 @@ export type PipelineInput = {
   onStage?: (stage: "analyzing" | "writing") => void;
   /** 사용자가 취소했는지. 분석이 끝난 뒤 확인해 생성 호출을 아낀다 */
   isCancelled?: () => Promise<boolean>;
+  /** 취소 신호: 걸리면 기다리던 AI 호출을 바로 놓고 끝낸다 (자리·크레딧을 즉시 돌려주기 위해. 업체 쪽 호출은 계속될 수 있다) */
+  signal?: AbortSignal;
   /** AI 호출이 끝날 때마다 (사용량·비용 집계용) */
   onUsage?: (r: ChatResult) => void;
   /** 판정값 (관리자 기록용). 결과(사용자 응답)에는 넣지 않는다 — 라벨 노출은 우회에 악용될 수 있음 */
@@ -167,9 +169,14 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const { profile } = input;
   const inference = getInferenceClient();
   // 모든 호출에 같은 시간·생각 모드 상한을 걸고, 끝나면 사용량을 알린다
+  const cancelled = () => new Error("cancelled");
+  const untilAbort = (signal: AbortSignal) =>
+    new Promise<never>((_, reject) => signal.addEventListener("abort", () => reject(cancelled()), { once: true }));
   const client = {
     chat: async (req: ChatRequest) => {
-      const r = await inference.chat({ think: callLimits.thinking, ...req });
+      if (input.signal?.aborted) throw cancelled();
+      const call = inference.chat({ think: callLimits.thinking, ...req });
+      const r = input.signal ? await Promise.race([call, untilAbort(input.signal)]) : await call;
       input.onUsage?.(r);
       if (r.finishReason === "length") stages.push({ stage: "truncated", model: r.model, outputTokens: r.usage.outputTokens });
       return r;

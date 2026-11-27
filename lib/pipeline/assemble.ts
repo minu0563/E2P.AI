@@ -173,13 +173,19 @@ export function assemblePrompt(blocks: Blocks, ctx: AssembleContext) {
   // 동작: 모델이 쓴 플레이스홀더는 지우고, 코드가 핵심 동작 구간에 정확히 한 번 넣는다
   // 모델이 카메라 문장을 동작 안에 또 쓰면 지운다 (카메라는 한 번만)
   const cam = blocks.camera.trim().replace(/[.]\s*$/, "");
-  const dropCam = (t: string) => (cam ? t.split(`${cam}.`).join("").split(cam).join("").replace(/\s{2,}/g, " ").trim() : t);
+  // 카메라는 카메라 문장 한 곳에서만: 동작 안의 "The camera …" 문장은 지운다 (고정 카메라와 모순되거나 같은 움직임이 두 번 나오지 않게)
+  const dropCam = (t: string) =>
+    (cam ? t.split(`${cam}.`).join("").split(cam).join("") : t)
+      .replace(/(?:^|(?<=[.!?]\s))The camera\b[^.!?]*[.!?]?/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
   let segments = blocks.segments.map((s) => ({ ...s, action: dropEndRefs(dropCam(fixRefs(s.action.split(ctx.placeholder).join("").trim()))) }));
   const pick = (n: number) => Math.min(Math.max(n, 0), segments.length - 1);
   if (ctx.keyMode === "placeholder") {
     const i = pick(blocks.key_action_segment);
     segments = segments.map((s, j) =>
-      j === i ? { ...s, action: `${sentence(s.action)} Then ${who || "the subject"} ${ctx.placeholder}`.trim() } : s,
+      // 사람이 중심이 아니면 지칭어 없이 빈칸만 ("Then the subject { … }" 같은 어색한 문장 방지)
+      j === i ? { ...s, action: `${sentence(s.action)} Then ${who ? `${who} ` : ""}${ctx.placeholder}`.trim() } : s,
     );
   }
   // 대사: 모델은 구간 번호만 정하고, 원문은 코드가 그대로 넣는다 (번역·수정 없음)

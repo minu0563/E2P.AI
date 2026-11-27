@@ -11,6 +11,7 @@ import { getCurrentUser, hasCurrentConsent, hasSessionCookie } from "@/lib/auth"
 import { CREDIT_CONFIG, grantDailyCredits, reserveCredits } from "@/lib/credits";
 import type { HistoryInput } from "@/lib/history";
 import { runGeneration } from "@/lib/generate";
+import { runAfterResponse } from "@/platform/image-store";
 import { GENERATION_CONFIG, RATE_CONFIG, activeCount, claimSlot, clientIp, hit, releaseSlot } from "@/lib/limits";
 import { forbidden, isSameOrigin } from "@/lib/security";
 import { isTestAccount, testSafetyShadowAllowed } from "@/lib/test-accounts";
@@ -160,8 +161,15 @@ export async function POST(request: Request) {
   };
 
   // 사용자가 취소하거나 연결이 끊기면: 남은 추론을 건너뛰고 크레딧 반환
+  // 취소 신호는 파이프라인까지 넘겨, 기다리던 AI 호출을 바로 놓고 자리·크레딧을 즉시 돌려준다
+  // (그래야 취소 직후 다시 생성해도 "이미 진행 중"이 나오지 않는다)
   let aborted = false;
-  request.signal.addEventListener("abort", () => (aborted = true));
+  const cancel = new AbortController();
+  const abort = () => {
+    aborted = true;
+    cancel.abort();
+  };
+  request.signal.addEventListener("abort", abort);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -171,10 +179,10 @@ export async function POST(request: Request) {
         try {
           controller.enqueue(encoder.encode(JSON.stringify(msg) + "\n"));
         } catch {
-          aborted = true; // 이미 닫힌 연결
+          abort(); // 이미 닫힌 연결
         }
       };
-      const result = await runGeneration(
+      const job = runGeneration(
         {
           requestId,
           userId: user.id,
@@ -189,8 +197,11 @@ export async function POST(request: Request) {
           cost,
           savedInput,
         },
-        { onStage: (stage) => send({ type: "stage", stage }), isCancelled: () => aborted },
+        { onStage: (stage) => send({ type: "stage", stage }), isCancelled: () => aborted, signal: cancel.signal },
       );
+      // 연결이 끊겨도 정산·자리 반환(finally)까지 끝나게 한다 (Workers는 응답이 끝나면 남은 작업을 멈출 수 있다)
+      runAfterResponse(job);
+      const result = await job;
       send({ type: "result", result });
       try {
         controller.close();
@@ -199,7 +210,7 @@ export async function POST(request: Request) {
       }
     },
     cancel() {
-      aborted = true;
+      abort();
     },
   });
 

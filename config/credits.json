@@ -11,7 +11,8 @@
   "monthly_promo_budget": 5000,
   "daily_limit": 50,
   "cost": {
-    "generate": 1
+    "generate": 1,
+    "start_end": 2
   },
   "day_utc_offset_hours": 9,
   "reservation_ttl_minutes": 10,
@@ -24,5 +25,5 @@
       "OUTPUT_FILTER"
     ]
   },
-  "_comment": "코드 수정 없이 조정. signup: 가입 시 무료 지급(유효기간 필수). daily: 하루 무료 지급(그날 처음 잔액을 보거나 생성할 때 지급, 다음 자정에 소멸 — 쌓이지 않음, 정지 계정 제외, amount 0이면 끔, 가입 예산과 별개). monthly_promo_budget: 이번 달 가입 지급 합이 넘으면 가입 지급 중단. daily_limit: 사용자별 하루 성공 생성 상한. day_utc_offset_hours: 하루 기준 시간대(9 = 한국 자정). reservation_ttl_minutes: 이 시간 동안 확정·반환이 없는 예약은 자동 반환. block_fee: 하루 free_per_day회까지 차단은 반환, 그 뒤 차단은 차감. counted_codes에 있는 사유만 센다(이미지 판정 차단·시스템 오류는 항상 반환)."
+  "_comment": "코드 수정 없이 조정. signup: 가입 시 무료 지급(유효기간 필수). daily: 하루 무료 지급(그날 처음 잔액을 보거나 생성할 때 지급, 다음 자정에 소멸 — 쌓이지 않음, 정지 계정 제외, amount 0이면 끔, 가입 예산과 별개). monthly_promo_budget: 이번 달 가입 지급 합이 넘으면 가입 지급 중단. daily_limit: 사용자별 하루 성공 생성 상한. cost: 한 번 생성에 드는 크레딧(generate = 한 장, start_end = 시작·끝 이미지 두 장. 차단 수수료도 같은 양). day_utc_offset_hours: 하루 기준 시간대(9 = 한국 자정). reservation_ttl_minutes: 이 시간 동안 확정·반환이 없는 예약은 자동 반환. block_fee: 하루 free_per_day회까지 차단은 반환, 그 뒤 차단은 차감. counted_codes에 있는 사유만 센다(이미지 판정 차단·시스템 오류는 항상 반환)."
 }

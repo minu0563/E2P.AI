@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdRail, AdSlot } from "@/components/ad-slot";
 import appConfig from "@/config/app.json";
+import creditsConfig from "@/config/credits.json";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { pageMeta } from "@/lib/seo";
 import { DEFAULT_PROFILE, getProfile } from "@/lib/profile";
@@ -35,6 +36,8 @@ export default async function GeneratePage() {
         aspectRatios={profile.aspect_ratios}
         placeholder={profile.placeholder}
         placeholderEnabled={appConfig.features.placeholder_mode}
+        startEndEnabled={appConfig.features.start_end_frames}
+        startEndCost={creditsConfig.cost.start_end}
         limits={appConfig.limits}
         locale={await getLocale()}
         outcomes={t.me.outcomes}

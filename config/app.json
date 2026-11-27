@@ -1,6 +1,7 @@
 {
   "features": {
-    "placeholder_mode": true
+    "placeholder_mode": true,
+    "start_end_frames": true
   },
   "limits": {
     "max_source_bytes": 20971520,

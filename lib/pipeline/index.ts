@@ -13,7 +13,7 @@ import {
   type ImageAnalysis,
   type RequestClass,
 } from "@/system/safety/analysis-schema";
-import { decide, precheck, scanTexts, type Decision, type SafetyConfig } from "@/system/safety/engine";
+import { decide, decideStartEnd, precheck, scanTexts, type Decision, type SafetyConfig } from "@/system/safety/engine";
 import { markBlocked, wasBlocked } from "@/system/safety/history";
 import { BLOCK_MESSAGES, type BlockCode } from "@/lib/safety/messages";
 import {
@@ -27,7 +27,7 @@ import {
   type KeyActionMode,
 } from "./assemble";
 import { checkQuality, type QualityWarning } from "./quality";
-import { GUIDES } from "@/system/guides";
+import { GUIDES, START_END_GUIDES } from "@/system/guides";
 import { ANALYSIS_SYSTEM, ANALYSIS_USER, REQUEST_SYSTEM, generationSystem, requestUser } from "@/system/prompts";
 
 const config = safetyConfig as SafetyConfig;
@@ -44,6 +44,10 @@ export type PipelineInput = {
   aspectRatio: string;
   pace: Pace;
   image: { base64: string; hash: string };
+  /** 시작·끝 이미지 모드의 끝 이미지 (영상 마지막 프레임, <Picture 2>). 없으면 한 장 모드 */
+  imageEnd?: { base64: string; hash: string };
+  /** 로그용 크레딧 비용 */
+  creditCost?: number;
   /** 안전 검사 모드 덮어쓰기 (개발 환경의 테스트 계정만 "shadow") */
   safetyMode?: "shadow";
   /** 대사 방식 (기본: 화면 속 인물이 말함) */
@@ -66,6 +70,9 @@ export type PipelineInput = {
 export type Judgment = {
   imageHash: string;
   image: ImageAnalysis | null;
+  /** 시작·끝 모드: 끝 이미지 해시·분석 */
+  imageHashEnd?: string;
+  imageEnd?: ImageAnalysis | null;
   request: RequestClass | null;
   /** 걸린 키워드 (분류별) */
   keywords: Record<string, string[]>;
@@ -136,10 +143,12 @@ function debugLines(
 }
 
 /** 가이드는 빌드에 포함된 문자열 (Workers에는 파일 시스템이 없다) */
-function loadGuide(profile: Profile) {
+function loadGuide(profile: Profile, startEnd = false) {
   const raw = GUIDES[profile.guide];
   if (!raw) throw new Error(`unknown guide: ${profile.guide}`);
-  return raw.replace(/<!--[\s\S]*?-->/g, "").trim();
+  const extra = startEnd ? START_END_GUIDES[profile.guide] : "";
+  if (startEnd && !extra) throw new Error(`no start/end guide: ${profile.guide}`);
+  return [raw, extra].filter(Boolean).join("\n\n").replace(/<!--[\s\S]*?-->/g, "").trim();
 }
 
 /** 텍스트·메타데이터만 로그 (이미지 원본·시스템 프롬프트 금지). TODO(DB 단계): 테이블로 저장 */
@@ -169,6 +178,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   let analysis: Analysis | null = null;
   let imageResult: ImageAnalysis | null = null;
+  let imageEndResult: ImageAnalysis | null = null;
+  const end = input.imageEnd;
+  const hashes = [...new Set([input.image.hash, ...(end ? [end.hash] : [])])];
   let requestResult: RequestClass | null = null;
   let decision: Decision | null = null;
   const scan = scanTexts([input.request, ...FIELD_KEYS.map((k) => input.fields[k])]);
@@ -185,6 +197,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     input.onJudgment({
       imageHash: input.image.hash,
       image: imageResult,
+      ...(end && { imageHashEnd: end.hash, imageEnd: imageEndResult }),
       request: requestResult,
       keywords: Object.fromEntries(Object.entries(scan).filter(([, v]) => v.length)),
       rule: decision
@@ -199,7 +212,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const fail = (code: BlockCode, extra: Record<string, unknown> = {}): PipelineResult => {
     emitJudgment(code);
     if (code === "SEXUAL_REQUEST" || code === "THIRD_PARTY_CLAIM") {
-      markBlocked(input.image.hash).catch((e) => console.error("[pipeline] markBlocked failed", String(e).slice(0, 200)));
+      for (const h of hashes) markBlocked(h).catch((e) => console.error("[pipeline] markBlocked failed", String(e).slice(0, 200)));
     }
     log({ requestId, outcome: "block", code, profile: profile.profile, inputMode: input.inputMode, stages, totalMs: Date.now() - t0, ...extra });
     return {
@@ -215,21 +228,21 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const pre = precheck(scan, config.explicit_request);
   if (pre) return fail(pre, { scan });
 
-  // 우회 루프 차단
-  if (input.placeholder && (await wasBlocked(input.image.hash))) {
+  // 우회 루프 차단 (시작·끝 모드면 두 이미지 중 하나라도 차단 이력이 있으면)
+  if (input.placeholder && (await Promise.all(hashes.map(wasBlocked))).some(Boolean)) {
     return fail("MODE_RESTRICTED", { bypassAttempt: true });
   }
 
   input.onStage?.("analyzing");
 
   // [3] 이미지 분석(Qwen, 이미지만)과 요청 분류(생성 모델, 텍스트만)를 동시에. 하나라도 실패하면 fail-closed
-  const analyzeImage = async () => {
+  const analyzeImage = async (base64: string, stage: string) => {
     try {
       const r = await client.chat({
         model: models.main(),
         system: ANALYSIS_SYSTEM,
         user: ANALYSIS_USER,
-        images: [input.image.base64],
+        images: [base64],
         schema: imageAnalysisJsonSchema,
         contextTokens: models.numCtx(),
         temperature: 0,
@@ -237,15 +250,15 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         maxTokens: callLimits.maxTokens.analysis,
         timeoutMs: callLimits.timeoutMs.analysis,
       });
-      stages.push(stageLog("analysis", r));
+      stages.push(stageLog(stage, r));
       try {
         return ImageAnalysisSchema.parse(JSON.parse(r.content));
       } catch (e) {
-        stages.push({ stage: "analysis_parse", head: r.content.slice(0, 120), tail: r.content.slice(-200) });
+        stages.push({ stage: "analysis_parse", image: stage, head: r.content.slice(0, 120), tail: r.content.slice(-200) });
         throw e;
       }
     } catch (e) {
-      stages.push({ stage: "analysis", error: String(e).slice(0, 300) });
+      stages.push({ stage, error: String(e).slice(0, 300) });
       return null;
     }
   };
@@ -271,20 +284,32 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       return null;
     }
   };
-  const [img, req] = await Promise.all([analyzeImage(), classifyRequest()]);
+  // 시작·끝이 같은 이미지(반복 영상)면 분석은 한 번만
+  const sameImage = !!end && end.hash === input.image.hash;
+  const [img, req, imgEndOwn] = await Promise.all([
+    analyzeImage(input.image.base64, "analysis"),
+    classifyRequest(),
+    end && !sameImage ? analyzeImage(end.base64, "analysis_end") : Promise.resolve(null),
+  ]);
+  const imgEnd = sameImage ? img : imgEndOwn;
   imageResult = img;
+  imageEndResult = imgEnd;
   requestResult = req;
   analysis = img && req ? { ...img, ...req } : null;
+  const analysisEnd: Analysis | null = imgEnd && req ? { ...imgEnd, ...req } : null;
 
-  // [4b] 규칙 엔진
+  // [4b] 규칙 엔진 (시작·끝 모드면 이미지마다 판정해 더 엄격한 쪽)
   const cfg: SafetyConfig = input.safetyMode === "shadow" ? { ...config, mode: "shadow" } : config;
-  decision = decide(analysis, scan, cfg, { placeholder: input.placeholder, dialogue: input.fields.dialogue });
+  const opts = { placeholder: input.placeholder, dialogue: input.fields.dialogue };
+  decision = end
+    ? decideStartEnd(decide(analysis, scan, cfg, opts), decide(analysisEnd, scan, cfg, opts))
+    : decide(analysis, scan, cfg, opts);
   if (decision.action === "block") return fail(decision.code!, { decision: decision.internal });
   const neutralize = decision.action === "neutralize";
   const explicitNeutralized = decision.explicitNeutralized;
   // 노골적 요청을 중화했으면 차단 때와 같게: 이 이미지는 24시간 빈칸 모드 금지 (우회 루프 차단)
   if (explicitNeutralized) {
-    markBlocked(input.image.hash).catch((e) => console.error("[pipeline] markBlocked failed", String(e).slice(0, 200)));
+    for (const h of hashes) markBlocked(h).catch((e) => console.error("[pipeline] markBlocked failed", String(e).slice(0, 200)));
   }
   const a = analysis!;
   if (await input.isCancelled?.()) return fail("SYSTEM_ERROR", { cancelled: true });
@@ -297,7 +322,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       ? "user"
       : "auto";
 
-  const guide = loadGuide(profile);
+  const guide = loadGuide(profile, !!end);
+  const e = analysisEnd;
   const userFields: Record<string, string> = Object.fromEntries(
     FIELD_KEYS.filter((k) => input.fields[k].trim()).map((k) => [k, input.fields[k].trim()]),
   );
@@ -325,6 +351,22 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       visible_body_parts: a.visible_body_parts,
       not_visible_body_parts: a.not_visible_body_parts,
     },
+    ...(e && {
+      end_image_facts: {
+        image_type: e.image_type,
+        person_count: e.person_count,
+        shot_type: e.shot_type,
+        viewpoint: e.viewpoint,
+        subject: e.subject,
+        scene: e.scene,
+        clothing: e.appearance,
+        pose: e.pose,
+        composition: e.composition,
+        lighting: e.lighting,
+        visible_body_parts: e.visible_body_parts,
+        not_visible_body_parts: e.not_visible_body_parts,
+      },
+    }),
     ...((neutralize || decision.ageAmbiguous) && {
       note: decision.ageAmbiguous
         ? "Describe only everyday, non-sexual actions with neutral wording. Do not describe the body, do not change or reveal clothing, keep the outfit exactly as in the image."
@@ -333,7 +375,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
           : "Describe every motion and outfit in neutral, everyday, non-sexual terms. Drop any sexualized nuance from the request. Do not mention body parts such as hips, buttocks, chest or thighs, and do not add anyone touching the person's body.",
     }),
   };
+  // 두 이미지 중 어디에도 안 보이는 부위만 "화면 밖"으로 본다
+  const hiddenParts = e ? a.not_visible_body_parts.filter((p) => e.not_visible_body_parts.includes(p)) : a.not_visible_body_parts;
   const ctx = {
+    endFrame: !!end,
     duration: input.duration,
     aspectRatio: input.aspectRatio,
     personCentric: a.person_centric && a.person_count > 0,
@@ -356,10 +401,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     try {
       const r = await client.chat({
         model: models.main(),
-        system: generationSystem(guide),
+        system: generationSystem(guide, { startEnd: !!end }),
         user: JSON.stringify(payload),
         // 같은 모델이 이미지를 직접 보고 쓴다 (분석 결과는 확정 사실·안전 기준으로 함께 준다)
-        images: [input.image.base64],
+        images: end ? [input.image.base64, end.base64] : [input.image.base64],
         schema: blocksJsonSchema,
         temperature: attempt === 0 ? 0.4 : 0.2,
         maxTokens: callLimits.maxTokens.generation,
@@ -378,7 +423,15 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       const prompt = assemblePrompt(blocks, ctx);
 
       // [6] 출력 검사
-      const violations = checkOutput({ profile, prompt, mode: keyMode, inputWasSuggestive, neutralized: neutralize, hasDialogue });
+      const violations = checkOutput({
+        profile,
+        prompt,
+        mode: keyMode,
+        inputWasSuggestive,
+        neutralized: neutralize,
+        hasDialogue,
+        ...(end && { endFrame: { duration: input.duration } }),
+      });
       if (violations.length) {
         stages.push({ stage: `output_check#${attempt + 1}`, violations });
         continue;
@@ -387,8 +440,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
       // [6b] 품질 검사: 기록만 (빈도를 본 뒤 재생성 여부를 정한다)
       quality = checkQuality(blocks, ctx, {
         userTexts: [input.request, ...FIELD_KEYS.map((k) => input.fields[k])],
-        notVisibleBodyParts: a.not_visible_body_parts,
-        imageFacts: [a.scene, a.lighting, a.subject],
+        notVisibleBodyParts: hiddenParts,
+        imageFacts: [a.scene, a.lighting, a.subject, ...(e ? [e.scene, e.lighting, e.subject] : [])],
       });
       if (quality.length) stages.push({ stage: "quality", warnings: quality });
 
@@ -405,7 +458,8 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
         // 요청 원문은 남기지 않는다 (DB 생성 기록에만 있고, 플랫폼 로그에는 보관 기간·접근 통제가 따로 없다)
         stages,
         totalMs,
-        credit_cost: 1,
+        credit_cost: input.creditCost ?? 1,
+        frames: end ? "start_end" : "single",
       });
       return {
         ok: true,

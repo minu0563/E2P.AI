@@ -36,6 +36,9 @@ export function imageStoreAvailable() {
 
 const path = (tier: StoredTier, requestId: string) => `${tier}/${requestId}`;
 
+/** 시작·끝 이미지 모드의 끝 이미지 저장 ID (같은 폴더, 같은 보관 기간). 암호화 연결 데이터도 이 ID */
+export const endImageId = (requestId: string) => `${requestId}.end`;
+
 /** 저장. 저장소가 없으면 false (호출 측은 실패로 기록만 하고 생성 결과에는 영향 없음) */
 export async function putImage(tier: ImageTier, requestId: string, plain: Uint8Array): Promise<boolean> {
   const b = binding();
@@ -69,12 +72,14 @@ export async function deleteImagesExceptHold(requestIds: string[]): Promise<bool
   const b = binding();
   if (!b) return false;
   const tiers: StoredTier[] = ["recent", "blocked", "quarantine"];
-  const keys = requestIds.flatMap((id) => tiers.map((t) => path(t, id)));
+  // 끝 이미지(<id>.end)도 함께 (없는 키 삭제는 아무 일도 하지 않는다)
+  const keys = requestIds.flatMap((id) => tiers.flatMap((t) => [path(t, id), path(t, endImageId(id))]));
   for (let i = 0; i < keys.length; i += 900) await b.bucket.delete(keys.slice(i, i + 900)); // R2 한 번에 최대 1000개
   return true;
 }
 
-/** 다른 폴더로 옮기기 (예: 수사기관 보존 요청 → hold/). 같은 키로 암호화된 그대로 복사한 뒤 원본 삭제 */
+/** 다른 폴더로 옮기기 (예: 수사기관 보존 요청 → hold/). 같은 키로 암호화된 그대로 복사한 뒤 원본 삭제.
+ * 시작·끝 모드 기록이면 호출 측이 endImageId(requestId)도 따로 옮긴다 */
 export async function moveImage(from: StoredTier, to: StoredTier, requestId: string): Promise<boolean> {
   const b = binding();
   if (!b) return false;

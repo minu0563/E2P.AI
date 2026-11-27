@@ -48,7 +48,17 @@ export const blocksJsonSchema = z.toJSONSchema(BlocksSchema);
 export const I2VA_ALIGNMENT =
   "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.";
 
+/** FL2VA 정렬 문장 (공식 형식: 여기서는 꺾쇠·대괄호 없이 Picture 1 / Shot 1, 끝 초는 소수 둘째 자리). 샷은 하나 */
+export function fl2vaAlignment(duration: number) {
+  return `How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the ${duration.toFixed(2)}-second mark of the target video.`;
+}
+
+/** 시작·끝 모드에서 동작 서술 끝에 코드가 넣는 도착 문장 (<Picture 2>가 반드시 한 번 나오게) */
+export const END_FRAME_SENTENCE = "The shot ends on the final frame shown in <Picture 2>.";
+
 export type AssembleContext = {
+  /** 시작·끝 이미지 모드 (FL2VA): 정렬 문장이 바뀌고 마지막에 도착 문장이 붙는다 */
+  endFrame?: boolean;
   duration: number;
   aspectRatio: string;
   personCentric: boolean;
@@ -121,6 +131,16 @@ export function dialogueLanguage(text: string) {
 
 /** 모델이 옛 표기(@image1)를 써도 공식 표기로 바꾼다 */
 const fixRefs = (t: string) => t.replace(/@image\d+\b/gi, "<Picture 1>");
+/** 모델이 쓰면 안 되는 <Picture 2> 이상 참조를 지운다 (도착 문장은 코드가 넣는다) */
+const dropEndRefs = (t: string) =>
+  t
+    .replace(/(?:\s+(?:as shown in|shown in|as in|in|of|from))?\s*<Picture (?:[2-9]|\d{2,})>/gi, "")
+    // 모델이 쓴 끝맺음("The shot ends on the final frame.", "... until the shot ends on the final frame")은 지운다 — 도착 문장은 코드가 한 번만 넣는다
+    .replace(/,?\s*(?:until|before|as|when)\s+the (?:shot|clip|video) ends(?: on the (?:final|last) frame)?/gi, "")
+    .replace(/(?:^|\s)The (?:shot|clip|video) ends(?: on the (?:final|last) frame)?[^.]*\.?/gi, " ")
+    .replace(/\s+([.,])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
 function styleFor(blocks: Blocks, ctx: AssembleContext) {
   const s = blocks.style.trim().replace(/[.,]\s*$/, "");
@@ -134,7 +154,10 @@ export function assemblePrompt(blocks: Blocks, ctx: AssembleContext) {
   const noun = ctx.personCentric && blocks.subject_noun !== "none" ? blocks.subject_noun : null;
   const who = noun ? `the ${noun} in <Picture 1>` : "";
   const Who = who ? capitalize(who) : "";
-  const subject = fixRefs(blocks.subject.trim()).replace(/[.]\s*$/, "");
+  // 모델이 지칭어("the man in <Picture 1>")까지 써도 코드가 넣는 지칭어와 겹치지 않게 앞부분을 지운다
+  const subject = fixRefs(blocks.subject.trim())
+    .replace(/[.]\s*$/, "")
+    .replace(noun ? /^(?:the|a|an)\s+(?:woman|man|person|character|girl|boy|lady|guy)\s+(?:in|from)\s+<Picture 1>\s*/i : /^$/, "");
 
   // [Shot 1] 이미지 기준점: 스타일 → 피사체(복장·소품) → 구도 → 장소·조명 → (자세 유지·프레임 확장·카메라) → 동작
   const parts: string[] = [];
@@ -151,7 +174,7 @@ export function assemblePrompt(blocks: Blocks, ctx: AssembleContext) {
   // 모델이 카메라 문장을 동작 안에 또 쓰면 지운다 (카메라는 한 번만)
   const cam = blocks.camera.trim().replace(/[.]\s*$/, "");
   const dropCam = (t: string) => (cam ? t.split(`${cam}.`).join("").split(cam).join("").replace(/\s{2,}/g, " ").trim() : t);
-  let segments = blocks.segments.map((s) => ({ ...s, action: dropCam(fixRefs(s.action.split(ctx.placeholder).join("").trim())) }));
+  let segments = blocks.segments.map((s) => ({ ...s, action: dropEndRefs(dropCam(fixRefs(s.action.split(ctx.placeholder).join("").trim()))) }));
   const pick = (n: number) => Math.min(Math.max(n, 0), segments.length - 1);
   if (ctx.keyMode === "placeholder") {
     const i = pick(blocks.key_action_segment);
@@ -181,12 +204,13 @@ export function assemblePrompt(blocks: Blocks, ctx: AssembleContext) {
     for (const s of norm) parts.push(sentence(s.action));
   }
 
+  if (ctx.endFrame) parts.push(END_FRAME_SENTENCE);
   const description = `[Shot 1] ${parts.filter(Boolean).join(" ")}`;
   const soundscape = sentence(fixRefs(blocks.soundscape)) || "Natural ambient sound of the scene.";
   const music = NONE.test(blocks.background_music.trim()) ? "N/A" : sentence(blocks.background_music);
 
   return [
-    I2VA_ALIGNMENT,
+    ctx.endFrame ? fl2vaAlignment(ctx.duration) : I2VA_ALIGNMENT,
     "",
     `integrated_multimodal_description: ${description}`,
     "",
@@ -214,7 +238,9 @@ export type OutputViolation =
   /** 옛 형식 토큰(@image, [Core idea], Forbidden: 등)이 남음 */
   | "LEGACY_TOKEN"
   /** 사용자 대사가 없는데 대사 태그가 나옴 */
-  | "DIALOGUE_UNEXPECTED";
+  | "DIALOGUE_UNEXPECTED"
+  /** 그림 참조 오류: 없는 그림(<Picture 3> 등)을 가리킴, 시작·끝 모드인데 <Picture 2> 도착 문장이 없거나 여러 번 */
+  | "PICTURE_REF";
 
 /**
  * 출력 검사: 플레이스홀더가 정확히 한 번 남았는지,
@@ -229,18 +255,25 @@ export function checkOutput(args: {
   neutralized?: boolean;
   /** 사용자가 대사를 줬는지 (없는데 <d>·(S1)이 나오면 위반) */
   hasDialogue?: boolean;
+  /** 시작·끝 이미지 모드면 영상 길이 (정렬 문장의 끝 초) */
+  endFrame?: { duration: number };
 }): OutputViolation[] {
-  const { profile, prompt, mode, inputWasSuggestive, neutralized = false, hasDialogue = false } = args;
+  const { profile, prompt, mode, inputWasSuggestive, neutralized = false, hasDialogue = false, endFrame } = args;
   const v: OutputViolation[] = [];
   const ph = profile.placeholder;
   const count = prompt.split(ph).length - 1;
 
   const structured =
-    prompt.startsWith(`${I2VA_ALIGNMENT}\n\nintegrated_multimodal_description: [Shot 1] `) &&
+    prompt.startsWith(`${endFrame ? fl2vaAlignment(endFrame.duration) : I2VA_ALIGNMENT}\n\nintegrated_multimodal_description: [Shot 1] `) &&
     /\n\noverall_soundscape: \S[^\n]*\n\nnon_diegetic_music: \S/.test(prompt);
   if (!structured) v.push("EMPTY");
   if (/@image\d|\[(Reference|Core idea|Scene-by-scene)\]|^Forbidden:/im.test(prompt)) v.push("LEGACY_TOKEN");
   if (!hasDialogue && /<d>|\(S\d\)/.test(prompt)) v.push("DIALOGUE_UNEXPECTED");
+  // 그림 참조: 한 장이면 <Picture 1>만, 두 장이면 <Picture 2>는 도착 문장의 한 번만 (정렬 문장의 꺾쇠 없는 표기는 세지 않는다)
+  const refs = [...prompt.matchAll(/<Picture (\d+)>/g)].map((m) => Number(m[1]));
+  const extra = refs.some((n) => n < 1 || n > (endFrame ? 2 : 1)) || /\bPicture (?:[3-9]|\d{2,})\b/.test(prompt) || (!endFrame && /\bPicture 2\b/.test(prompt));
+  const endOnce = !endFrame || (prompt.split(END_FRAME_SENTENCE).length === 2 && refs.filter((n) => n === 2).length === 1);
+  if (extra || !endOnce) v.push("PICTURE_REF");
   if (mode === "placeholder" && count !== 1) v.push("PLACEHOLDER_MISSING");
   if (mode !== "placeholder" && count > 0) v.push("PLACEHOLDER_UNEXPECTED");
 

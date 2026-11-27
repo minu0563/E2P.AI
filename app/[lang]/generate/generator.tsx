@@ -21,6 +21,9 @@ type Props = {
   aspectRatios: string[];
   placeholder: string;
   placeholderEnabled: boolean;
+  /** 시작·끝 이미지 모드 (기능 스위치) */
+  startEndEnabled: boolean;
+  startEndCost: number;
   limits: { max_source_bytes: number; max_image_side: number; max_request_chars: number; max_field_chars: number };
   locale: string;
   t: Dictionary["generator"];
@@ -43,6 +46,8 @@ export function Generator({
   aspectRatios,
   placeholder,
   placeholderEnabled,
+  startEndEnabled,
+  startEndCost,
   limits,
   locale,
   t,
@@ -51,6 +56,11 @@ export function Generator({
   outcomes,
 }: Props) {
   const [file, setFile] = useState<File | null>(null);
+  // 시작·끝 이미지 모드: 끝 이미지(마지막 프레임). 끝 이미지만 넣는 경우는 없다
+  const [frames, setFrames] = useState<"single" | "start_end">("single");
+  const [fileEnd, setFileEnd] = useState<File | null>(null);
+  const [ratios, setRatios] = useState<{ start: string; end: string }>({ start: "", end: "" });
+  const startEnd = startEndEnabled && frames === "start_end";
   const [duration, setDuration] = useState(durationSpec.default);
   const [aspectRatio, setAspectRatio] = useState("");
   // 사용자가 비율을 직접 고르기 전까지는 사진 비율에 맞춰 자동으로 고른다
@@ -111,6 +121,7 @@ export function Generator({
       setCameraSpeed(i.camera?.speed ?? "normal");
       setGaze(i.gaze ?? "auto");
       setDialogueMode(i.dialogueMode ?? "on_screen");
+      if (startEndEnabled) setFrames(i.frames ?? "single");
     } else {
       setMode("natural");
       setRequest(item.requestText);
@@ -167,16 +178,21 @@ export function Generator({
     setLoadedNote(null);
   }
 
-  const canSubmit = !!file && !loading && (mode === "fields" || usePlaceholder || request.trim().length > 0);
+  const imagesReady = !!file && (!startEnd || !!fileEnd);
+  const canSubmit = imagesReady && !loading && (mode === "fields" || usePlaceholder || request.trim().length > 0);
 
   async function submit() {
-    if (!file || loading) return;
+    if (!file || loading || (startEnd && !fileEnd)) return;
     setLoading(true);
     setElapsed(0);
     setResult(null);
     setLoadedNote(null);
     const form = new FormData();
     form.set("image", file);
+    if (startEnd && fileEnd) {
+      form.set("frames", "start_end");
+      form.set("imageEnd", fileEnd);
+    }
     form.set("profile", profileId);
     form.set("inputMode", mode);
     form.set("request", request);
@@ -261,25 +277,83 @@ export function Generator({
           )}
 
           <div className={stepCls}>
-            <Label>{t.image}</Label>
-            <ImageDrop
-              file={file}
-              maxBytes={limits.max_source_bytes}
-              maxSide={limits.max_image_side}
-              t={t}
-              onChange={(f) => {
-                setFile(f);
-                setAutoFilled({});
-                if (f && aspectAuto) {
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <Label>
+                {t.image}
+                {startEnd && <Help label={t.helpLabel}>{t.framesHelp}</Help>}
+              </Label>
+              {startEndEnabled && (
+                <div role="radiogroup" aria-label={t.image} className="flex shrink-0 rounded-md border border-border bg-surface p-0.5 text-xs">
+                  {(
+                    [
+                      ["single", t.framesSingle],
+                      ["start_end", `${t.framesStartEnd} · ${fmt(t.framesCost, { n: startEndCost })}`],
+                    ] as const
+                  ).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={frames === v}
+                      onClick={() => {
+                        setFrames(v);
+                        setResult(null);
+                      }}
+                      className={`rounded px-2.5 py-1.5 transition ${frames === v ? "bg-surface-2 font-semibold text-text" : "text-muted hover:text-text"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={startEnd ? "grid gap-3 sm:grid-cols-2" : ""}>
+              <ImageDrop
+                file={file}
+                label={startEnd ? t.frameStart : undefined}
+                compact={startEnd}
+                maxBytes={limits.max_source_bytes}
+                maxSide={limits.max_image_side}
+                t={t}
+                onChange={(f) => {
+                  setFile(f);
+                  setAutoFilled({});
+                  if (!f) return setRatios((r) => ({ ...r, start: "" }));
                   createImageBitmap(f)
                     .then((b) => {
-                      setAspectRatio(nearestRatio(b.width, b.height, aspectRatios));
+                      const r = nearestRatio(b.width, b.height, aspectRatios);
+                      setRatios((x) => ({ ...x, start: r }));
+                      // 화면 비율은 시작 이미지 기준
+                      if (aspectAuto) setAspectRatio(r);
                       b.close();
                     })
                     .catch(() => {});
-                }
-              }}
-            />
+                }}
+              />
+              {startEnd && (
+                <ImageDrop
+                  file={fileEnd}
+                  label={t.frameEnd}
+                  compact
+                  maxBytes={limits.max_source_bytes}
+                  maxSide={limits.max_image_side}
+                  t={t}
+                  onChange={(f) => {
+                    setFileEnd(f);
+                    if (!f) return setRatios((r) => ({ ...r, end: "" }));
+                    createImageBitmap(f)
+                      .then((b) => {
+                        setRatios((x) => ({ ...x, end: nearestRatio(b.width, b.height, aspectRatios) }));
+                        b.close();
+                      })
+                      .catch(() => {});
+                  }}
+                />
+              )}
+            </div>
+            {startEnd && file && fileEnd && ratios.start && ratios.end && ratios.start !== ratios.end && (
+              <p className="mt-2 text-xs text-warn">{fmt(t.framesRatioWarn, { a: ratios.start, b: ratios.end })}</p>
+            )}
           </div>
 
           <div className={stepCls}>
@@ -500,7 +574,7 @@ export function Generator({
 
         <div className="mt-7 flex items-center gap-2">
           <button onClick={submit} disabled={!canSubmit} className="btn btn-primary flex-1 py-3">
-            {loading ? fmt(t.generating, { n: elapsed }) : t.submit}
+            {loading ? fmt(t.generating, { n: elapsed }) : startEnd ? fmt(t.submitStartEnd, { n: startEndCost }) : t.submit}
           </button>
           {loading && (
             <button onClick={cancel} className="btn btn-ghost py-3">
@@ -508,10 +582,14 @@ export function Generator({
             </button>
           )}
         </div>
-        {!file && <p className="mt-2 text-xs text-faint">{t.needImage}</p>}
+        {!file ? (
+          <p className="mt-2 text-xs text-faint">{t.needImage}</p>
+        ) : (
+          startEnd && !fileEnd && <p className="mt-2 text-xs text-faint">{t.needEndImage}</p>
+        )}
       </section>
 
-      <ResultPanel result={result} loading={loading} elapsed={elapsed} progress={progress} onRegenerate={submit} canRegenerate={!!file} settings={settings} t={tr} />
+      <ResultPanel result={result} loading={loading} elapsed={elapsed} progress={progress} onRegenerate={submit} canRegenerate={imagesReady} settings={settings} t={tr} />
       {ackOpen && (
         <PolicyAck
           t={t.ack}

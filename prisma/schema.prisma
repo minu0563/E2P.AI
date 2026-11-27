@@ -118,6 +118,8 @@ model GenerationLog {
   costMicroUsd Int?
   /// AI 판정값 (관리자 전용, 사용자에게 보내지 않는다). 키워드만으로 막히면 이미지 칸은 비어 있다
   imageHash       String?
+  /// 시작·끝 이미지 모드의 끝 이미지 해시 (한 장 모드는 null). 끝 이미지 판정은 judgment.end
+  imageHashEnd    String?
   imageType       String?
   personCount     Int?
   estimatedAge    Int?

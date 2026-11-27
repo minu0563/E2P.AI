@@ -14,15 +14,17 @@ type Outcome = "ok" | "block" | "error" | "cancel";
 
 export function isQuarantineClass(blockCode: string | null, j: Judgment | null): boolean {
   const img = j?.image ?? null;
+  // 시작·끝 모드: 두 이미지를 모두 본다 (끝 이미지만 위험한 경우도 격리 쪽)
+  const imgs = [img, ...(j?.imageEnd ? [j.imageEnd] : [])].filter((x) => x != null);
   const kw = j?.keywords ?? {};
   const has = (k: string) => (kw[k]?.length ?? 0) > 0;
 
   if (blockCode === "SEXUAL_IMAGE") return true;
-  if (img?.sexual_content === "explicit") return true;
+  if (imgs.some((x) => x.sexual_content === "explicit")) return true;
 
-  const minor = (img != null && (img.age_assessment === "possibly_minor" || img.age_assessment === "ambiguous")) || has("minor");
+  const minor = imgs.some((x) => x.age_assessment === "possibly_minor" || x.age_assessment === "ambiguous") || has("minor");
   const sexual =
-    (img != null && img.sexual_content !== "none") ||
+    imgs.some((x) => x.sexual_content !== "none") ||
     (j?.request != null && j.request.request_level !== "general") ||
     has("explicit") ||
     has("suggestive") ||

@@ -9,12 +9,18 @@ const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function ImageDrop({
   file,
+  label,
+  compact = false,
   maxBytes,
   maxSide,
   onChange,
   t,
 }: {
   file: File | null;
+  /** 칸 위 작은 이름 (시작·끝 이미지 모드) */
+  label?: string;
+  /** 두 칸을 나란히 놓을 때: 낮은 높이 */
+  compact?: boolean;
   maxBytes: number;
   maxSide: number;
   onChange: (f: File | null) => void;
@@ -48,8 +54,10 @@ export function ImageDrop({
 
   return (
     <div>
+      {label && <p className="mb-1 text-xs font-medium text-muted">{label}</p>}
       <div
         role="button"
+        aria-label={label}
         tabIndex={0}
         onClick={() => inputRef.current?.click()}
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
@@ -63,13 +71,13 @@ export function ImageDrop({
           setDrag(false);
           pick(e.dataTransfer.files[0]);
         }}
-        className={`relative grid min-h-52 cursor-pointer place-items-center overflow-hidden rounded-md border border-dashed transition ${
+        className={`relative grid ${compact ? "min-h-40" : "min-h-52"} cursor-pointer place-items-center overflow-hidden rounded-md border border-dashed transition ${
           drag ? "border-accent bg-accent-soft" : "border-border bg-bg hover:border-line"
         }`}
       >
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element -- 로컬 blob 미리보기
-          <img src={preview} alt="" className="max-h-80 w-full object-contain" />
+          <img src={preview} alt="" className={`${compact ? "max-h-56" : "max-h-80"} w-full object-contain`} />
         ) : busy ? (
           <p className="p-6 text-sm text-muted">{t.preparing}</p>
         ) : (

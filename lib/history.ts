@@ -14,6 +14,8 @@ export type HistoryInput = {
   camera?: CameraPreset;
   gaze?: "auto" | "camera";
   dialogueMode?: "on_screen" | "voiceover";
+  /** 이미지 장수: single = 한 장, start_end = 시작·끝 두 장 (이미지는 저장하지 않으므로 다시 불러오면 다시 올려야 함) */
+  frames?: "single" | "start_end";
 };
 
 export type HistoryItem = {

@@ -49,8 +49,9 @@ export async function POST(request: Request) {
 
   // 본문을 메모리에 올리기 전에 크기 확인 (formData()는 본문 전체를 읽는다). 이미지 상한 + 글·필드 여유분
   // (헤더가 없는 경우는 막지 않는다 — 브라우저는 FormData 길이를 항상 보내고, 프록시 구간에서 빠질 수 있어 정상 요청을 막을 위험이 더 크다)
+  // 시작·끝 이미지 모드는 이미지가 2장 (장마다 같은 상한)
   const declared = Number(request.headers.get("content-length"));
-  if (declared > limits.max_upload_bytes + MAX_FORM_OVERHEAD) {
+  if (declared > limits.max_upload_bytes * 2 + MAX_FORM_OVERHEAD) {
     return bad("이미지 파일이 너무 큽니다.", 413);
   }
 
@@ -64,6 +65,12 @@ export async function POST(request: Request) {
   const file = form.get("image");
   if (!(file instanceof File) || file.size === 0) return bad("이미지를 올려 주세요.");
   if (file.size > limits.max_upload_bytes) return bad("이미지 파일이 너무 큽니다.");
+  // 시작·끝 이미지 모드: 끝 이미지 필수 (끝 이미지만 넣는 경우는 없다). 지금은 최대 2장
+  const frames = form.get("frames") === "start_end" ? "start_end" : "single";
+  const fileEnd = frames === "start_end" ? form.get("imageEnd") : null;
+  if (frames === "start_end" && !features.start_end_frames) return bad("이용 중인 요금제에서 지원하지 않는 기능입니다.");
+  if (frames === "start_end" && (!(fileEnd instanceof File) || fileEnd.size === 0)) return bad("끝 이미지를 올려 주세요.");
+  if (fileEnd instanceof File && fileEnd.size > limits.max_upload_bytes) return bad("이미지 파일이 너무 큽니다.");
 
   const profile = getProfile(String(form.get("profile") ?? DEFAULT_PROFILE));
   if (!profile) return bad("지원하지 않는 대상 모델입니다.");
@@ -101,11 +108,16 @@ export async function POST(request: Request) {
   const dialogueMode = form.get("dialogueMode") === "voiceover" ? "voiceover" : "on_screen";
 
   let image;
+  let imageEnd: Awaited<ReturnType<typeof validateImage>> | undefined;
   try {
     image = await validateImage(new Uint8Array(await file.arrayBuffer()), limits.max_image_side, limits.max_upload_bytes);
+    if (fileEnd instanceof File) {
+      imageEnd = await validateImage(new Uint8Array(await fileEnd.arrayBuffer()), limits.max_image_side, limits.max_upload_bytes);
+    }
   } catch (e) {
     return bad(e instanceof ImageError ? e.message : "이미지를 읽을 수 없습니다.");
   }
+  const cost = imageEnd ? CREDIT_CONFIG.cost.start_end : CREDIT_CONFIG.cost.generate;
 
   // 킬 스위치·AI 예산 (모든 계정, 테스트 계정 포함). 사유는 로그에만, 사용자에게는 "잠시 쉼"만
   const budget = await checkBudget();
@@ -125,7 +137,7 @@ export async function POST(request: Request) {
   if (!test) {
     // 오늘 무료 지급이 아직 없으면 먼저 지급 (하루 한 번)
     await grantDailyCredits(user.id);
-    const reserved = await reserveCredits(user.id, requestId, CREDIT_CONFIG.cost.generate);
+    const reserved = await reserveCredits(user.id, requestId, cost);
     if (!reserved.ok) {
       await releaseSlot(user.id, requestId);
       return fail(reserved.reason, 402);
@@ -144,6 +156,7 @@ export async function POST(request: Request) {
     camera,
     gaze,
     dialogueMode,
+    frames,
   };
 
   // 사용자가 취소하거나 연결이 끊기면: 남은 추론을 건너뛰고 크레딧 반환
@@ -172,6 +185,8 @@ export async function POST(request: Request) {
           profile,
           input: { inputMode, request: request_, fields, placeholder, duration, aspectRatio, pace, camera, gaze, dialogueMode },
           image,
+          ...(imageEnd && { imageEnd }),
+          cost,
           savedInput,
         },
         { onStage: (stage) => send({ type: "stage", stage }), isCancelled: () => aborted },

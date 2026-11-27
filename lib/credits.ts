@@ -21,7 +21,7 @@ export const CREDIT_CONFIG = creditConfig as {
   daily: { amount: number; credit_type: CreditType };
   monthly_promo_budget: number;
   daily_limit: number;
-  cost: { generate: number };
+  cost: { generate: number; start_end: number };
   day_utc_offset_hours: number;
   reservation_ttl_minutes: number;
   block_fee: { free_per_day: number; counted_codes: string[] };

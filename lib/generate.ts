@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { recordBlock, type AbuseNotice } from "@/lib/abuse";
 import { addUsage, emptyUsage, recordUsage, type Usage } from "@/lib/ai-budget";
 import { decideTier, expiresAt, type ImageTier } from "@/lib/image-retention";
-import { deleteImage, putImage, runAfterResponse } from "@/platform/image-store";
+import { deleteImage, endImageId, putImage, runAfterResponse } from "@/platform/image-store";
 import { CREDIT_CONFIG, confirmCredits, getBalance, releaseCredits, settleBlocked } from "@/lib/credits";
 import { db } from "@/lib/db";
 import type { HistoryInput } from "@/lib/history";
@@ -27,6 +27,10 @@ export type GenerationJob = {
   profile: Profile;
   input: Omit<PipelineInput, "image" | "profile" | "requestId" | "onStage" | "isCancelled" | "safetyMode" | "onUsage" | "onJudgment">;
   image: PipelineInput["image"];
+  /** 시작·끝 이미지 모드의 끝 이미지 */
+  imageEnd?: PipelineInput["image"];
+  /** 이번 생성의 크레딧 (예약한 양과 같다, 기본: 한 장 생성) */
+  cost?: number;
   savedInput: HistoryInput;
 };
 
@@ -65,6 +69,7 @@ async function writeLog(
         outputTokens: usage.outputTokens,
         costMicroUsd: usage.costMicroUsd,
         imageHash: judgment?.imageHash ?? j.image.hash,
+        imageHashEnd: j.imageEnd?.hash ?? null,
         imageTier: tier,
         imageExpiresAt: tier ? expiresAt(tier) : null,
         ...(img && {
@@ -86,6 +91,21 @@ async function writeLog(
             personCentric: img?.person_centric ?? null,
             keywords: judgment.keywords,
             rule: judgment.rule,
+            ...(j.imageEnd && {
+              frames: "start_end",
+              end: judgment.imageEnd
+                ? {
+                    imageType: judgment.imageEnd.image_type,
+                    personCount: judgment.imageEnd.person_count,
+                    estimatedAge: judgment.imageEnd.estimated_age,
+                    ageAssessment: judgment.imageEnd.age_assessment,
+                    minorCues: judgment.imageEnd.minor_cues,
+                    sexualContent: judgment.imageEnd.sexual_content,
+                    subject: judgment.imageEnd.subject,
+                    scene: judgment.imageEnd.scene,
+                  }
+                : null,
+            }),
             ...(judgment.quality && { quality: judgment.quality }),
           } as Prisma.InputJsonValue,
         }),
@@ -104,14 +124,19 @@ async function writeLog(
 function storeImageLater(j: GenerationJob, tier: ImageTier) {
   const task = (async () => {
     try {
+      // 끝 이미지는 같은 폴더의 <requestId>.end (보관 기간·삭제가 같이 따라간다)
       const ok = await putImage(tier, j.requestId, Buffer.from(j.image.base64, "base64"));
+      if (ok && j.imageEnd) await putImage(tier, endImageId(j.requestId), Buffer.from(j.imageEnd.base64, "base64"));
       if (ok) {
         // 저장하는 사이 삭제 요청으로 지워졌으면(imageTier가 비워짐) 방금 올린 것도 지운다
         const r = await db.generationLog.updateMany({
           where: { requestId: j.requestId, imageTier: tier },
           data: { imageStoredAt: new Date() },
         });
-        if (r.count === 0) await deleteImage(tier, j.requestId);
+        if (r.count === 0) {
+          await deleteImage(tier, j.requestId);
+          if (j.imageEnd) await deleteImage(tier, endImageId(j.requestId));
+        }
       } else console.warn("[image] store unavailable (R2 binding or IMAGE_KEY missing)");
     } catch (e) {
       console.error("[image] store failed", String(e).slice(0, 200));
@@ -124,7 +149,7 @@ export async function runGeneration(
   j: GenerationJob,
   opts: { onStage?: (s: "analyzing" | "writing") => void; isCancelled: () => boolean },
 ): Promise<GenerationResult> {
-  const cost = CREDIT_CONFIG.cost.generate;
+  const cost = j.cost ?? CREDIT_CONFIG.cost.generate;
   const usage = emptyUsage();
   let judgment: Judgment | null = null;
   const cancelled = async (): Promise<GenerationResult> => {
@@ -138,6 +163,8 @@ export async function runGeneration(
       requestId: j.requestId,
       profile: j.profile,
       image: j.image,
+      ...(j.imageEnd && { imageEnd: j.imageEnd }),
+      creditCost: cost,
       safetyMode: j.test?.safetyShadow ? "shadow" : undefined,
       onStage: opts.onStage,
       onUsage: (r) => addUsage(usage, r),

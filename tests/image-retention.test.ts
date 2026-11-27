@@ -42,3 +42,18 @@ describe("이미지 보관 폴더", () => {
     expect(decideTier("ok", null, j(), { store_enabled: false, quarantine_enabled: true })).toBeNull();
   });
 });
+
+describe("시작·끝 이미지 보관", () => {
+  it("끝 이미지만 위험해도 격리 대상", () => {
+    expect(isQuarantineClass("SEXUAL_REQUEST", j({ imageEnd: img({ sexual_content: "explicit" }) }))).toBe(true);
+    expect(
+      isQuarantineClass("AGE_UNCERTAIN", j({ imageEnd: img({ age_assessment: "possibly_minor", sexual_content: "suggestive" }) })),
+    ).toBe(true);
+    // 끝 이미지 연령 애매 + 시작 이미지 성적 → 격리
+    expect(isQuarantineClass("AGE_UNCERTAIN", j({ image: img({ sexual_content: "suggestive" }), imageEnd: img({ age_assessment: "ambiguous" }) }))).toBe(true);
+  });
+  it("두 장 모두 일반이면 그대로", () => {
+    expect(decideTier("ok", null, j({ imageEnd: img() }), off)).toBe("recent");
+    expect(decideTier("block", "THIRD_PARTY_CLAIM", j({ imageEnd: img() }), off)).toBe("blocked");
+  });
+});

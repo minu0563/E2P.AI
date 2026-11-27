@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  END_FRAME_SENTENCE,
   I2VA_ALIGNMENT,
+  fl2vaAlignment,
   assemblePrompt,
   checkOutput,
   dialogueLanguage,
@@ -272,5 +274,70 @@ describe("문장 첫 글자", () => {
   it("모델이 소문자로 시작해도 대문자로", () => {
     const p = assemblePrompt({ ...blocks, location: "outdoors, daytime, near a building wall" }, photo);
     expect(p).toContain(" Outdoors, daytime, near a building wall.");
+  });
+});
+
+describe("시작·끝 이미지 (FL2VA)", () => {
+  const se: AssembleContext = { ...photo, endFrame: true };
+  const ok = (prompt: string, duration = 8) =>
+    checkOutput({ profile, prompt, mode: "auto", inputWasSuggestive: false, endFrame: { duration } });
+
+  it("공식 FL2VA 정렬 문장: 꺾쇠·대괄호 없음, 끝 초는 소수 둘째 자리", () => {
+    expect(fl2vaAlignment(8)).toBe(
+      "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 8.00-second mark of the target video.",
+    );
+    expect(fl2vaAlignment(12)).toContain("12.00-second mark");
+  });
+
+  it("정렬 문장이 바뀌고 동작 끝에 <Picture 2> 도착 문장이 한 번 붙는다", () => {
+    const p = assemblePrompt(blocks, se);
+    expect(p.split("\n")[0]).toBe(fl2vaAlignment(8));
+    const d = p.split("\n")[2];
+    expect(d.endsWith(END_FRAME_SENTENCE)).toBe(true);
+    expect(d.match(/<Picture 2>/g)).toHaveLength(1);
+    expect(ok(p)).toEqual([]);
+  });
+
+  it("모델이 쓴 <Picture 2>·<Picture 3>는 지우고 코드가 한 번만 넣는다", () => {
+    const b = { ...blocks, segments: [{ start: 0, end: 8, action: "She stands up and ends as shown in <Picture 2>, like <Picture 3>" }] };
+    const p = assemblePrompt(b, se);
+    expect(p).not.toContain("<Picture 3>");
+    expect(p.match(/<Picture 2>/g)).toHaveLength(1);
+    expect(ok(p)).toEqual([]);
+  });
+
+  it("subject에 지칭어가 들어 있어도 한 번만", () => {
+    const d = assemblePrompt({ ...blocks, subject: "the man in <Picture 1> wears black-rimmed glasses" }, photo).split("\n")[2];
+    expect(d).toContain("Live-action, the woman in <Picture 1> wears black-rimmed glasses.");
+    expect(d.match(/in <Picture 1>/g)).toHaveLength(1);
+  });
+
+  it("모델이 쓴 끝맺음 문장은 지우고 도착 문장만 남긴다", () => {
+    const b = {
+      ...blocks,
+      segments: [
+        { start: 0, end: 4, action: "The mist drifts across the hills. The shot ends on the final frame." },
+        { start: 4, end: 8, action: "The fog shifts, partially hiding the mountains until the shot ends on the final frame." },
+      ],
+    };
+    const d = assemblePrompt(b, se).split("\n")[2];
+    expect(d).toContain("partially hiding the mountains. The shot ends on the final frame shown in <Picture 2>.");
+    expect(d.match(/shot ends/g)).toHaveLength(1);
+  });
+
+  it("출력 검사: 도착 문장 없음, 없는 그림 참조, 길이 불일치는 위반", () => {
+    const p = assemblePrompt(blocks, se);
+    expect(ok(p.replace(END_FRAME_SENTENCE, ""))).toContain("PICTURE_REF");
+    expect(ok(p.replace(END_FRAME_SENTENCE, `${END_FRAME_SENTENCE} <Picture 3>`))).toContain("PICTURE_REF");
+    expect(ok(p, 10)).toContain("EMPTY"); // 정렬 문장의 끝 초가 영상 길이와 다름
+  });
+
+  it("한 장 모드에서 Picture 2가 나오면 위반, 한 장 결과는 그대로 통과", () => {
+    const single = assemblePrompt(blocks, photo);
+    const check = (prompt: string) => checkOutput({ profile, prompt, mode: "auto", inputWasSuggestive: false });
+    expect(check(single)).toEqual([]);
+    expect(check(single.replace("waves.", "waves like <Picture 2>."))).toContain("PICTURE_REF");
+    // 한 장 결과를 두 장 검사에 넣으면 (정렬 문장이 다름) 위반
+    expect(ok(single)).toContain("EMPTY");
   });
 });

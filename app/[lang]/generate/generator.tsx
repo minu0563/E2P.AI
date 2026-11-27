@@ -8,6 +8,7 @@ import type { Dictionary } from "@/lib/i18n/dictionaries/ko";
 import { fmt, fmtDate } from "@/lib/i18n/format";
 import type { FieldKey, Pace, Profile } from "@/lib/profile";
 import { nearestRatio } from "@/lib/aspect";
+import { Select } from "@/components/select";
 import { ImageDrop } from "./image-drop";
 import { ResultPanel, type Progress, type Result } from "./result-panel";
 
@@ -410,37 +411,25 @@ export function Generator({
               ))}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
-              <label>
-                <span className="mb-1 block text-xs text-muted">{t.duration}</span>
-                <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} className={inputCls}>
-                  {Array.from({ length: durationSpec.max - durationSpec.min + 1 }, (_, i) => durationSpec.min + i).map((s) => (
-                    <option key={s} value={s}>
-                      {fmt(t.seconds, { n: s })}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className="mb-1 block text-xs text-muted">
-                  {t.aspect}
-                  {aspectAuto && aspectRatio && <span className="ml-1 text-faint">· {t.aspectFromImage}</span>}
-                </span>
-                <select
-                  value={aspectRatio}
-                  onChange={(e) => {
-                    setAspectRatio(e.target.value);
-                    setAspectAuto(false);
-                  }}
-                  className={inputCls}
-                >
-                  <option value="">{t.aspectNone}</option>
-                  {aspectRatios.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select
+                label={t.duration}
+                value={String(duration)}
+                onChange={(v) => setDuration(Number(v))}
+                options={Array.from({ length: durationSpec.max - durationSpec.min + 1 }, (_, i) => durationSpec.min + i).map((n) => ({
+                  value: String(n),
+                  label: fmt(t.seconds, { n }),
+                }))}
+              />
+              <Select
+                label={t.aspect}
+                hint={aspectAuto && aspectRatio ? t.aspectFromImage : undefined}
+                value={aspectRatio}
+                onChange={(v) => {
+                  setAspectRatio(v);
+                  setAspectAuto(false);
+                }}
+                options={[{ value: "", label: t.aspectNone }, ...aspectRatios.map((r) => ({ value: r, label: r }))]}
+              />
             </div>
           </div>
 
@@ -451,72 +440,43 @@ export function Generator({
               <Help label={t.helpLabel}>{t.helpDirection}</Help>
             </Label>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <label className="col-span-2">
-                  <span className="mb-1 block text-xs text-muted">{t.camera}</span>
-                  <select value={cameraMotion} onChange={(e) => setCameraMotion(e.target.value as CameraMotion)} className={inputCls}>
-                    {CAMERA_MOTIONS.map((m) => (
-                      <option key={m} value={m}>
-                        {t.cameraMotions[m] ?? m}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs text-muted">{t.cameraAmplitude}</span>
-                  <select
-                    value={cameraAmplitude}
-                    disabled={!cameraModifiable}
-                    onChange={(e) => setCameraAmplitude(e.target.value as CameraAmplitude)}
-                    className={`${inputCls} disabled:opacity-50`}
-                  >
-                    {CAMERA_AMPLITUDES.map((a) => (
-                      <option key={a} value={a}>
-                        {t.cameraAmplitudes[a] ?? a}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs text-muted">{t.cameraSpeed}</span>
-                  <select
-                    value={cameraSpeed}
-                    disabled={!cameraModifiable}
-                    onChange={(e) => setCameraSpeed(e.target.value as CameraSpeed)}
-                    className={`${inputCls} disabled:opacity-50`}
-                  >
-                    {CAMERA_SPEEDS.map((sp) => (
-                      <option key={sp} value={sp}>
-                        {t.cameraSpeeds[sp] ?? sp}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="col-span-2">
-                  <span className="mb-1 block text-xs text-muted">{t.gaze}</span>
-                  <select value={gaze} onChange={(e) => setGaze(e.target.value as "auto" | "camera")} className={inputCls}>
-                    {(["auto", "camera"] as const).map((g) => (
-                      <option key={g} value={g}>
-                        {t.gazes[g] ?? g}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {mode === "fields" && (
-                  <label className="col-span-2">
-                    <span className="mb-1 block text-xs text-muted">{t.dialogueMode}</span>
-                    <select
-                      value={dialogueMode}
-                      onChange={(e) => setDialogueMode(e.target.value as "on_screen" | "voiceover")}
-                      className={inputCls}
-                    >
-                      {(["on_screen", "voiceover"] as const).map((d) => (
-                        <option key={d} value={d}>
-                          {t.dialogueModes[d] ?? d}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
+              <Select
+                className="col-span-2"
+                label={t.camera}
+                value={cameraMotion}
+                onChange={setCameraMotion}
+                options={CAMERA_MOTIONS.map((m) => ({ value: m, label: t.cameraMotions[m] ?? m }))}
+              />
+              <Select
+                label={t.cameraAmplitude}
+                value={cameraAmplitude}
+                disabled={!cameraModifiable}
+                onChange={setCameraAmplitude}
+                options={CAMERA_AMPLITUDES.map((a) => ({ value: a, label: t.cameraAmplitudes[a] ?? a }))}
+              />
+              <Select
+                label={t.cameraSpeed}
+                value={cameraSpeed}
+                disabled={!cameraModifiable}
+                onChange={setCameraSpeed}
+                options={CAMERA_SPEEDS.map((sp) => ({ value: sp, label: t.cameraSpeeds[sp] ?? sp }))}
+              />
+              <Select
+                className="col-span-2"
+                label={t.gaze}
+                value={gaze}
+                onChange={setGaze}
+                options={(["auto", "camera"] as const).map((g) => ({ value: g, label: t.gazes[g] ?? g }))}
+              />
+              {mode === "fields" && (
+                <Select
+                  className="col-span-2"
+                  label={t.dialogueMode}
+                  value={dialogueMode}
+                  onChange={setDialogueMode}
+                  options={(["on_screen", "voiceover"] as const).map((d) => ({ value: d, label: t.dialogueModes[d] ?? d }))}
+                />
+              )}
             </div>
           </div>
 

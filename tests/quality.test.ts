@@ -24,14 +24,14 @@ const blocks: Blocks = {
   soundscape: "Soft waves and light wind",
   background_music: "",
 };
-const ctx = {
-  imageType: "photo" as const,
+const ctx: Parameters<typeof checkQuality>[1] = {
+  imageType: "photo",
   personCentric: true,
   allowFrameExtension: false,
   dialogue: "",
   duration: 8,
-  pace: "normal" as const,
-  gaze: "auto" as const,
+  pace: "normal",
+  gaze: "auto",
 };
 const args = { userTexts: ["손을 흔든다"], notVisibleBodyParts: ["legs", "feet"], imageFacts: ["sandy beach", "sunset light"] };
 const run = (b: Partial<Blocks> = {}, c: Partial<typeof ctx> = {}, a: Partial<typeof args> = {}) =>
